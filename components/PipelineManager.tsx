@@ -918,18 +918,17 @@ export default function PipelineManager() {
                         {/* Regression Info */}
                         {(goal.currentValue ?? 0) < (goal.startingValue ?? 0) && (
                           <p className="text-xs text-yellow-700 mt-2 bg-yellow-50 px-2 py-1 rounded">
-                            ⚠️ Regression: You're{' '}
+                            ⚠️ Regression: Need{' '}
                             <span className="font-semibold">
                               {goal.unit}
                               {((goal.startingValue ?? 0) - (goal.currentValue ?? 0)).toLocaleString()}
                             </span>{' '}
-                            behind starting point. Total climb needed:{' '}
+                            to recover back to starting point ({goal.unit}{(goal.startingValue ?? 0).toLocaleString()}).
+                            Total to reach {goal.unit}{(goal.targetValue ?? 0).toLocaleString()}:{' '}
                             <span className="font-semibold">
                               {goal.unit}
                               {((goal.targetValue ?? 0) - (goal.currentValue ?? 0)).toLocaleString()}
-                            </span>{' '}
-                            (original goal: {goal.unit}
-                            {((goal.targetValue ?? 0) - (goal.startingValue ?? 0)).toLocaleString()})
+                            </span>
                           </p>
                         )}
                       </div>
