@@ -122,19 +122,15 @@ export default function PipelineManager() {
     const currentValue = parseFloat(newGoal.currentValue) || startingValue;
     const targetValue = parseFloat(newGoal.targetValue);
 
-    // Validation - allow negative starting values (losses) but ensure logical progression
+    // Validation - ALL values can be negative (e.g., reducing losses: -$50k → -$30k → -$10k)
+    // Only ensure logical progression: Starting < Target and Starting <= Current <= Target
     if (targetValue <= startingValue) {
-      alert('Target Value must be greater than Starting Value');
+      alert('Target Value must be different from (and progress beyond) Starting Value\n\nExamples:\n- Growth: $0 → $10k → $50k\n- Loss Reduction: -$50k → -$30k → -$10k');
       return;
     }
 
-    if (currentValue < startingValue) {
-      alert('Current Value cannot be less than Starting Value');
-      return;
-    }
-
-    if (currentValue > targetValue) {
-      alert('Current Value cannot be greater than Target Value');
+    if (currentValue < startingValue || currentValue > targetValue) {
+      alert('Current Value must be between Starting and Target values\n\nStarting ≤ Current ≤ Target');
       return;
     }
 
@@ -723,29 +719,29 @@ export default function PipelineManager() {
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="Starting Value (can be negative for losses)"
+                  placeholder="Starting Value (e.g., -$50k loss, $0, $10k)"
                   value={newGoal.startingValue}
                   onChange={(e) => setNewGoal({ ...newGoal, startingValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
-                  title="Starting value (can be negative to track recovery from losses)"
+                  title="Starting value (can be negative for losses)"
                 />
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="Current Value"
+                  placeholder="Current Value (e.g., -$30k, $5k, $20k)"
                   value={newGoal.currentValue}
                   onChange={(e) => setNewGoal({ ...newGoal, currentValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
-                  title="Current value (where you are now)"
+                  title="Current value (can be negative if still operating at a loss)"
                 />
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="Target Value"
+                  placeholder="Target Value (e.g., -$10k, $0, $50k)"
                   value={newGoal.targetValue}
                   onChange={(e) => setNewGoal({ ...newGoal, targetValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
-                  title="Target value (must be greater than starting)"
+                  title="Target value (can be negative if goal is loss reduction)"
                   required
                 />
                 <input

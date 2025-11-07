@@ -20,8 +20,8 @@ The Goals feature tracks progress from a **Starting Value** → **Current Value*
 
 ### 3. **Target Value (TO)**
 - Where you want to be by the deadline (e.g., $20,000 MRR by Dec 31)
-- Must be greater than Starting Value
-- ✅ **Usually positive** but can be negative if goal is to reduce losses
+- Must be greater than Starting Value (showing progress/improvement)
+- ✅ **Can be negative** if goal is to reduce losses (e.g., -$50k → -$10k)
 
 ### 4. **Target Date**
 - Deadline for achieving the goal
@@ -126,7 +126,25 @@ TO:      $10,000  (positive cash flow goal)
 
 ---
 
-### ❌ **Scenario 3: Debt Reduction (Problem Case)**
+### ✅ **Scenario 3: Loss Reduction (ALL Negative Values)**
+
+```
+FROM:    -$50,000 (operating loss in Q1)
+CURRENT: -$30,000 (still losing money, but improved)
+TO:      -$10,000 (target: reduce loss to $10k)
+```
+
+**Calculation:**
+- Total journey: -$10,000 - (-$50,000) = $40,000 improvement needed
+- Progress made: -$30,000 - (-$50,000) = $20,000 improvement made
+- Progress %: $20,000 / $40,000 = **50%** ✅ CORRECT!
+- Remaining: -$10,000 - (-$30,000) = $20,000 left to improve
+
+**Result:** This is a **valid scenario** - reducing losses from -$50k to -$10k!
+
+---
+
+### ❌ **Scenario 4: Debt Reduction (Problem Case)**
 
 If you're trying to track debt reduction (going from high debt to low debt):
 
@@ -150,13 +168,15 @@ TO:      50,000   (fully paid off target)
 
 ---
 
-## ✅ **Negative Numbers ARE Supported**
+## ✅ **Negative Numbers ARE Fully Supported**
 
 ### **Valid Use Cases:**
 
 1. **Recovery from Losses**: Track progress from negative to positive (e.g., -$26k → $8k → $70k)
-2. **Cash Flow Improvement**: From negative cash flow to profitability
-3. **Profit Recovery**: From operating losses to profit targets
+2. **Loss Reduction**: Track reducing losses while staying negative (e.g., -$50k → -$30k → -$10k)
+3. **Cash Flow Improvement**: From negative cash flow to profitability (e.g., -$5k → -$2k → $10k)
+4. **Profit Recovery**: From operating losses to profit targets
+5. **Break-Even Goals**: Target zero from losses (e.g., -$20k → -$5k → $0)
 
 ### **How the Math Handles It:**
 
@@ -177,17 +197,17 @@ This is a **valid and important business scenario**!
 ## 🎯 **Best Practices**
 
 ### ✅ **DO:**
-1. Use negative Starting Value when tracking recovery from losses
-2. Make sure: Starting < Current ≤ Target (logical progression)
+1. Use negative values when tracking losses or recovery (-$50k → -$10k or -$26k → $70k)
+2. Ensure logical progression: Starting < Current ≤ Target
 3. Set realistic target dates
 4. Update Current Value regularly
-5. Use negative numbers thoughtfully (they represent real business situations)
+5. Use ALL THREE negative values for loss reduction goals
 
 ### ❌ **DON'T:**
-1. Set Current Value higher than Target (can't be past your goal)
-2. Set Target lower than or equal to Starting (need to be progressing forward)
+1. Set Current Value outside the Starting→Target range
+2. Set Target equal to or less than Starting (no progress/improvement)
 3. Set dates in the past
-4. Set Current Value lower than Starting (that's regression, not progress)
+4. Confuse debt tracking with loss tracking (see Scenario 4)
 
 ---
 
@@ -214,21 +234,18 @@ The goal card shows:
 
 ## 🔧 **Current Implementation**
 
-### **Validation Logic (Already Implemented)**
+### **Validation Logic (Current Implementation)**
 ```typescript
-// Ensures logical progression
+// ALL values can be negative (e.g., reducing losses: -$50k → -$30k → -$10k)
+// Only ensures logical progression: Starting < Target and Starting <= Current <= Target
+
 if (targetValue <= startingValue) {
-  alert('Target must be greater than Starting Value');
+  alert('Target Value must be different from (and progress beyond) Starting Value\n\nExamples:\n- Growth: $0 → $10k → $50k\n- Loss Reduction: -$50k → -$30k → -$10k');
   return;
 }
 
-if (currentValue < startingValue) {
-  alert('Current cannot be less than Starting (that's regression)');
-  return;
-}
-
-if (currentValue > targetValue) {
-  alert('Current cannot exceed Target (you've already achieved it!)');
+if (currentValue < startingValue || currentValue > targetValue) {
+  alert('Current Value must be between Starting and Target values\n\nStarting ≤ Current ≤ Target');
   return;
 }
 ```
