@@ -129,18 +129,20 @@ TO:      $10,000  (positive cash flow goal)
 ### ✅ **Scenario 3: Loss Reduction (ALL Negative Values)**
 
 ```
-FROM:    -$50,000 (operating loss in Q1)
-CURRENT: -$30,000 (still losing money, but improved)
-TO:      -$10,000 (target: reduce loss to $10k)
+FROM:    -$100,000 (losing $100k per month)
+CURRENT: -$80,000  (still losing, but only $80k - improvement!)
+TO:      -$50,000  (goal: reduce loss to $50k)
 ```
 
-**Calculation:**
-- Total journey: -$10,000 - (-$50,000) = $40,000 improvement needed
-- Progress made: -$30,000 - (-$50,000) = $20,000 improvement made
-- Progress %: $20,000 / $40,000 = **50%** ✅ CORRECT!
-- Remaining: -$10,000 - (-$30,000) = $20,000 left to improve
+**This IS growth** - you're improving by reducing losses, even though all values are negative!
 
-**Result:** This is a **valid scenario** - reducing losses from -$50k to -$10k!
+**Calculation:**
+- Total improvement needed: -$50,000 - (-$100,000) = $50,000 ✅
+- Progress made: -$80,000 - (-$100,000) = $20,000 improvement ✅
+- Progress %: $20,000 / $50,000 = **40%** ✅ CORRECT!
+- Remaining: -$50,000 - (-$80,000) = $30,000 left to improve ✅
+
+**Mathematical Note:** Even though -$50k < -$100k in absolute terms, mathematically -$50k > -$100k, so validation passes correctly!
 
 ---
 
@@ -170,13 +172,15 @@ TO:      50,000   (fully paid off target)
 
 ## ✅ **Negative Numbers ARE Fully Supported**
 
-### **Valid Use Cases:**
+### **Valid Use Cases (ALL values can be negative!):**
 
 1. **Recovery from Losses**: Track progress from negative to positive (e.g., -$26k → $8k → $70k)
-2. **Loss Reduction**: Track reducing losses while staying negative (e.g., -$50k → -$30k → -$10k)
+2. **Loss Reduction (Edge Case)**: Reduce losses while staying negative (e.g., -$100k → -$80k → -$50k)
+   - This IS growth - you're improving by $50k even though still losing money!
 3. **Cash Flow Improvement**: From negative cash flow to profitability (e.g., -$5k → -$2k → $10k)
 4. **Profit Recovery**: From operating losses to profit targets
 5. **Break-Even Goals**: Target zero from losses (e.g., -$20k → -$5k → $0)
+6. **Standard Growth**: Traditional positive growth (e.g., $10k → $30k → $100k)
 
 ### **How the Math Handles It:**
 
