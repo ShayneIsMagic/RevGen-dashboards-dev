@@ -829,10 +829,10 @@ export default function FinancialDashboard() {
           <>
             {/* Financial Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              {/* Income */}
+              {/* Gross Revenue */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-700">Total Income</h3>
+                  <h3 className="text-lg font-semibold text-gray-700">Gross Revenue</h3>
                   <TrendingUp className="text-green-600" size={24} />
                 </div>
                 <p className={`text-3xl font-bold ${financialData.income.total >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
@@ -872,22 +872,22 @@ export default function FinancialDashboard() {
                 )}
               </div>
 
-              {/* Gross Profit */}
+              {/* Net Income */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-700">Gross Profit</h3>
-                  {financialData.grossProfit.total >= 0 ? (
+                  <h3 className="text-lg font-semibold text-gray-700">Net Income</h3>
+                  {(financialData.income.total - financialData.expenses.total) >= 0 ? (
                     <TrendingUp className="text-green-600" size={24} />
                   ) : (
                     <TrendingDown className="text-red-600" size={24} />
                   )}
                 </div>
-                <p className={`text-3xl font-bold ${financialData.grossProfit.total >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {financialData.grossProfit.total >= 0 ? '$' : '-$'}
-                  {Math.abs(financialData.grossProfit.total).toLocaleString()}
+                <p className={`text-3xl font-bold ${(financialData.income.total - financialData.expenses.total) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(financialData.income.total - financialData.expenses.total) >= 0 ? '$' : '-$'}
+                  {Math.abs(financialData.income.total - financialData.expenses.total).toLocaleString()}
                 </p>
-                <p className={`text-sm mt-2 ${financialData.grossProfit.margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  Margin: {financialData.grossProfit.margin >= 0 ? '+' : ''}{financialData.grossProfit.margin.toFixed(1)}%
+                <p className={`text-sm mt-2 ${(financialData.income.total - financialData.expenses.total) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  Margin: {financialData.income.total !== 0 ? ((financialData.income.total - financialData.expenses.total) / financialData.income.total * 100).toFixed(1) : '0.0'}%
                 </p>
               </div>
 

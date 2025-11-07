@@ -6,6 +6,14 @@
 export interface FinancialData {
   accountsReceivable: number;
   mrr: number;
+  incomeCategories?: {
+    consultingRevenue?: number;
+    softwareRevenue?: number;
+    educationTraining?: number;
+    dwsSubsidy?: number;
+    grantRevenue?: number;
+    equipmentSales?: number;
+  };
   agingReceivables?: {
     current: number;
     days30: number;
@@ -35,6 +43,37 @@ export function parseFinancialDataFromText(text: string): Partial<FinancialData>
       /MRR[:\s]*\$?([\d,]+\.?\d*)/i,
       /monthly\s*recurring\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
       /recurring\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+    ],
+    // Income categories
+    consultingRevenue: [
+      /consulting\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+      /consulting\s*income[:\s]*\$?([\d,]+\.?\d*)/i,
+      /consulting[:\s]*\$?([\d,]+\.?\d*)/i,
+    ],
+    softwareRevenue: [
+      /software\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+      /software\s*income[:\s]*\$?([\d,]+\.?\d*)/i,
+      /software\s*sales[:\s]*\$?([\d,]+\.?\d*)/i,
+    ],
+    educationRevenue: [
+      /education\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+      /training\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+      /education[\s/]*training[:\s]*\$?([\d,]+\.?\d*)/i,
+    ],
+    dwsSubsidy: [
+      /DWS\s*apprenticeship\s*subsidy[:\s]*\$?([\d,]+\.?\d*)/i,
+      /DWS\s*subsidy[:\s]*\$?([\d,]+\.?\d*)/i,
+      /apprenticeship\s*subsidy[:\s]*\$?([\d,]+\.?\d*)/i,
+    ],
+    grantRevenue: [
+      /grant\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+      /grant\s*income[:\s]*\$?([\d,]+\.?\d*)/i,
+      /grants[:\s]*\$?([\d,]+\.?\d*)/i,
+    ],
+    equipmentSales: [
+      /sales\s*of\s*equipment[:\s]*\$?([\d,]+\.?\d*)/i,
+      /equipment\s*sales[:\s]*\$?([\d,]+\.?\d*)/i,
+      /equipment\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
     ],
     aging30: [
       /0-30\s*days?[:\s]*\$?([\d,]+\.?\d*)/i,
@@ -70,6 +109,61 @@ export function parseFinancialDataFromText(text: string): Partial<FinancialData>
       data.mrr = parseCurrency(match[1]);
       break;
     }
+  }
+
+  // Extract Income Categories
+  const incomeCategories: FinancialData['incomeCategories'] = {};
+  
+  for (const pattern of patterns.consultingRevenue) {
+    const match = text.match(pattern);
+    if (match) {
+      incomeCategories.consultingRevenue = parseCurrency(match[1]);
+      break;
+    }
+  }
+  
+  for (const pattern of patterns.softwareRevenue) {
+    const match = text.match(pattern);
+    if (match) {
+      incomeCategories.softwareRevenue = parseCurrency(match[1]);
+      break;
+    }
+  }
+  
+  for (const pattern of patterns.educationRevenue) {
+    const match = text.match(pattern);
+    if (match) {
+      incomeCategories.educationTraining = parseCurrency(match[1]);
+      break;
+    }
+  }
+  
+  for (const pattern of patterns.dwsSubsidy) {
+    const match = text.match(pattern);
+    if (match) {
+      incomeCategories.dwsSubsidy = parseCurrency(match[1]);
+      break;
+    }
+  }
+  
+  for (const pattern of patterns.grantRevenue) {
+    const match = text.match(pattern);
+    if (match) {
+      incomeCategories.grantRevenue = parseCurrency(match[1]);
+      break;
+    }
+  }
+  
+  for (const pattern of patterns.equipmentSales) {
+    const match = text.match(pattern);
+    if (match) {
+      incomeCategories.equipmentSales = parseCurrency(match[1]);
+      break;
+    }
+  }
+  
+  if (Object.keys(incomeCategories).length > 0) {
+    data.incomeCategories = incomeCategories;
   }
 
   // Extract Aging Receivables
