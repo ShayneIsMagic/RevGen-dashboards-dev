@@ -146,7 +146,35 @@ TO:      -$50,000  (goal: reduce loss to $50k)
 
 ---
 
-### ❌ **Scenario 4: Debt Reduction (Problem Case)**
+### ⚠️ **Scenario 4: Regression then Recovery (Current < Starting)**
+
+```
+Starting: $2,000    (you were profitable!)
+Current:  -$10,000  (now LOSING money - went backward!)
+To:       $70,000   (recovery target)
+```
+
+**This is REGRESSION then RECOVERY** - you've gone backward before trying to move forward!
+
+**Calculation:**
+- Original journey planned: $70,000 - $2,000 = **$68,000** improvement
+- What actually happened: Lost $12,000 first! ($2,000 → -$10,000)
+- Current progress: -$10,000 - $2,000 = **-$12,000** (negative 17.6% progress!)
+- Total climb needed NOW: $70,000 - (-$10,000) = **$80,000** (from where you are)
+- Extra work created: $80,000 - $68,000 = **$12,000** (the loss you need to recover)
+
+**UI Display:**
+```
+⚠️ Regression Detected
+You've gone $12,000 backward from starting point.
+Total climb needed: $80,000 to reach $70,000 from current position
+```
+
+**Result:** This IS supported, with a warning to show you need extra recovery!
+
+---
+
+### ❌ **Scenario 5: Debt Reduction (Problem Case)**
 
 If you're trying to track debt reduction (going from high debt to low debt):
 
@@ -170,17 +198,19 @@ TO:      50,000   (fully paid off target)
 
 ---
 
-## ✅ **Negative Numbers ARE Fully Supported**
+## ✅ **ALL Scenarios Supported (Including Regression!)**
 
-### **Valid Use Cases (ALL values can be negative!):**
+### **Valid Use Cases:**
 
-1. **Recovery from Losses**: Track progress from negative to positive (e.g., -$26k → $8k → $70k)
-2. **Loss Reduction (Edge Case)**: Reduce losses while staying negative (e.g., -$100k → -$80k → -$50k)
+1. **Standard Growth**: Traditional positive growth (e.g., $10k → $30k → $100k)
+2. **Recovery from Losses**: Track progress from negative to positive (e.g., -$26k → $8k → $70k)
+3. **Loss Reduction (All Negative)**: Reduce losses while staying negative (e.g., -$100k → -$80k → -$50k)
    - This IS growth - you're improving by $50k even though still losing money!
-3. **Cash Flow Improvement**: From negative cash flow to profitability (e.g., -$5k → -$2k → $10k)
-4. **Profit Recovery**: From operating losses to profit targets
+4. **Cash Flow Improvement**: From negative cash flow to profitability (e.g., -$5k → -$2k → $10k)
 5. **Break-Even Goals**: Target zero from losses (e.g., -$20k → -$5k → $0)
-6. **Standard Growth**: Traditional positive growth (e.g., $10k → $30k → $100k)
+6. **⚠️ Regression then Recovery**: Went backward, now recovering (e.g., $2k → -$10k → $70k)
+   - You started profitable, regressed to losses, now targeting growth
+   - Shows warning: "Total climb needed: $80k" (includes $12k recovery)
 
 ### **How the Math Handles It:**
 

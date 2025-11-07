@@ -122,16 +122,35 @@ export default function PipelineManager() {
     const currentValue = parseFloat(newGoal.currentValue) || startingValue;
     const targetValue = parseFloat(newGoal.targetValue);
 
-    // Validation - ALL values can be negative (e.g., reducing losses: -$50k → -$30k → -$10k)
-    // Only ensure logical progression: Starting < Target and Starting <= Current <= Target
+    // Validation - ALL values can be negative, and Current can even be BELOW Starting (regression)
     if (targetValue <= startingValue) {
       alert('Target Value must be different from (and progress beyond) Starting Value\n\nExamples:\n- Growth: $0 → $10k → $50k\n- Loss Reduction: -$50k → -$30k → -$10k');
       return;
     }
 
-    if (currentValue < startingValue || currentValue > targetValue) {
-      alert('Current Value must be between Starting and Target values\n\nStarting ≤ Current ≤ Target');
+    if (currentValue > targetValue) {
+      alert('Current Value cannot exceed Target (you\'ve already achieved your goal!)');
       return;
+    }
+
+    // Warning when regressing (Current < Starting)
+    if (currentValue < startingValue) {
+      const regression = startingValue - currentValue;
+      const originalGoal = targetValue - startingValue;
+      const totalNeeded = targetValue - currentValue;
+      const extra = totalNeeded - originalGoal;
+      
+      const confirmed = confirm(
+        `⚠️ REGRESSION DETECTED\n\n` +
+        `You've gone BACKWARD by ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(regression)}\n\n` +
+        `Original goal: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(originalGoal)} improvement\n` +
+        `Current position: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(regression)} behind starting point\n` +
+        `Total climb needed: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalNeeded)} from current position\n` +
+        `Extra recovery needed: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(extra)}\n\n` +
+        `Continue creating this goal?`
+      );
+      
+      if (!confirmed) return;
     }
 
     const goal: Goal = {
@@ -895,6 +914,24 @@ export default function PipelineManager() {
                             {(metrics.requiredRunRate ?? 0).toFixed(2)}/day
                           </span>
                         </p>
+                        
+                        {/* Regression Info */}
+                        {(goal.currentValue ?? 0) < (goal.startingValue ?? 0) && (
+                          <p className="text-xs text-yellow-700 mt-2 bg-yellow-50 px-2 py-1 rounded">
+                            ⚠️ Regression: You're{' '}
+                            <span className="font-semibold">
+                              {goal.unit}
+                              {((goal.startingValue ?? 0) - (goal.currentValue ?? 0)).toLocaleString()}
+                            </span>{' '}
+                            behind starting point. Total climb needed:{' '}
+                            <span className="font-semibold">
+                              {goal.unit}
+                              {((goal.targetValue ?? 0) - (goal.currentValue ?? 0)).toLocaleString()}
+                            </span>{' '}
+                            (original goal: {goal.unit}
+                            {((goal.targetValue ?? 0) - (goal.startingValue ?? 0)).toLocaleString()})
+                          </p>
+                        )}
                       </div>
                     </>
                   )}
