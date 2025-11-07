@@ -1268,19 +1268,28 @@ export default function PipelineManager() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          {lead.interactions.map((interaction, idx) => (
-                            <span
-                              key={idx}
-                              className="text-xs text-gray-500"
-                              title={`${interaction.type}: ${interaction.notes}`}
+                        <div className="flex gap-1 items-center">
+                          <span className="text-sm font-semibold text-gray-700">{lead.interactions.length}</span>
+                          {lead.interactions.length > 0 && (
+                            <button
+                              onClick={() => {
+                                const interactionList = lead.interactions
+                                  .map((int, idx) => {
+                                    const icon = int.type === 'text' ? '📱' : int.type === 'phone' ? '📞' : int.type === 'email' ? '✉️' : '👤';
+                                    return `${idx + 1}. ${icon} ${int.type.toUpperCase()} (${int.date})\n   ${int.notes || 'No notes'}`;
+                                  })
+                                  .join('\n\n');
+                                alert(`Interactions with ${lead.prospect}:\n\n${interactionList}`);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 text-xs underline"
+                              title="View all interactions"
                             >
-                              {interaction.type === 'text' ? '📱' : interaction.type === 'phone' ? '📞' : interaction.type === 'email' ? '✉️' : '👤'}
-                            </span>
-                          ))}
+                              view
+                            </button>
+                          )}
                           <button
                             onClick={() => addInteraction(lead.id)}
-                            className="text-blue-600 hover:text-blue-800 text-xs"
+                            className="text-green-600 hover:text-green-800 text-sm font-bold"
                             title="Add Interaction"
                           >
                             +
