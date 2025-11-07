@@ -20,6 +20,11 @@ interface FinancialData {
     total: number;
     categories: Array<{ name: string; amount: number }>;
   };
+  runRate?: {
+    calculated: number; // Total Expenses / Days in Period
+    manual?: number; // Manual override
+    daysInPeriod: number;
+  };
   receivables: Array<{
     client: string;
     amount: number;
@@ -28,6 +33,28 @@ interface FinancialData {
     daysOutstanding: number;
     status: 'current' | '30-60' | '60-90' | '90+';
   }>;
+}
+
+// Helper function to calculate days in period
+function getDaysInPeriod(period: 'month' | 'quarter' | 'year', date: string): number {
+  const d = new Date(date);
+  if (period === 'month') {
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  } else if (period === 'quarter') {
+    return 90; // Approximate
+  } else {
+    return 365; // Could adjust for leap years
+  }
+}
+
+// Helper function to calculate run rate
+function calculateRunRate(expenses: number, period: 'month' | 'quarter' | 'year', date: string, manualOverride?: number) {
+  const daysInPeriod = getDaysInPeriod(period, date);
+  return {
+    calculated: expenses / daysInPeriod,
+    manual: manualOverride,
+    daysInPeriod,
+  };
 }
 
 export default function FinancialDashboard() {
@@ -57,6 +84,11 @@ export default function FinancialDashboard() {
 
   const saveFinancialData = async (data: FinancialData) => {
     try {
+      // Calculate run rate if not already set
+      if (!data.runRate) {
+        data.runRate = calculateRunRate(data.expenses.total, selectedPeriod, periodDate);
+      }
+      
       const key = `financial_${selectedPeriod}_${periodDate}`;
       localStorage.setItem(key, JSON.stringify(data));
       setFinancialData(data);
@@ -860,6 +892,12 @@ export default function FinancialDashboard() {
                 <p className="text-3xl font-bold text-gray-900">
                   ${financialData.expenses.total.toLocaleString()}
                 </p>
+                {financialData.runRate && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Run Rate: <span className="font-semibold">${(financialData.runRate.manual ?? financialData.runRate.calculated).toFixed(2)}/day</span>
+                    {financialData.runRate.manual && <span className="text-xs text-blue-600"> (manual)</span>}
+                  </p>
+                )}
                 {financialData.expenses.categories.length > 0 && (
                   <div className="mt-4 space-y-1">
                     {financialData.expenses.categories.slice(0, 3).map((cat, idx) => (

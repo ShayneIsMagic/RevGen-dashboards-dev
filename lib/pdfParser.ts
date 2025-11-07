@@ -33,63 +33,65 @@ export function parseFinancialDataFromText(text: string): Partial<FinancialData>
   const data: Partial<FinancialData> = {};
 
   // Common patterns for financial data
+  // Note: Patterns use \$ to require dollar sign - this helps avoid matching GL account numbers (4010, 5000, etc.)
   const patterns = {
     accountsReceivable: [
-      /accounts?\s*receivable[:\s]*\$?([\d,]+\.?\d*)/i,
-      /AR[:\s]*\$?([\d,]+\.?\d*)/i,
-      /receivables[:\s]*\$?([\d,]+\.?\d*)/i,
+      /accounts?\s*receivable[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /AR[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /receivables[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     mrr: [
-      /MRR[:\s]*\$?([\d,]+\.?\d*)/i,
-      /monthly\s*recurring\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
-      /recurring\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+      /MRR[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /monthly\s*recurring\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /recurring\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     // Income categories
     consultingRevenue: [
-      /consulting\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
-      /consulting\s*income[:\s]*\$?([\d,]+\.?\d*)/i,
-      /consulting[:\s]*\$?([\d,]+\.?\d*)/i,
+      /consulting\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /consulting\s*income[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /consulting(?!\s*GL)[:\s]*\$\s*([\d,]+\.?\d*)/i, // Negative lookahead for "GL"
     ],
     softwareRevenue: [
-      /software\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
-      /software\s*income[:\s]*\$?([\d,]+\.?\d*)/i,
-      /software\s*sales[:\s]*\$?([\d,]+\.?\d*)/i,
+      /software\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /software\s*income[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /software\s*sales[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     educationRevenue: [
-      /education\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
-      /training\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
-      /education[\s/]*training[:\s]*\$?([\d,]+\.?\d*)/i,
+      /education\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /training\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /education[\s/]*training[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     dwsSubsidy: [
-      /DWS\s*apprenticeship\s*subsidy[:\s]*\$?([\d,]+\.?\d*)/i,
-      /DWS\s*subsidy[:\s]*\$?([\d,]+\.?\d*)/i,
-      /apprenticeship\s*subsidy[:\s]*\$?([\d,]+\.?\d*)/i,
+      /DWS\s*apprenticeship\s*subsidy[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /DWS\s*subsidy[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /apprenticeship\s*subsidy[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     grantRevenue: [
-      /grant\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
-      /grant\s*income[:\s]*\$?([\d,]+\.?\d*)/i,
-      /grants[:\s]*\$?([\d,]+\.?\d*)/i,
+      /grant\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/gi,
+      /grant\s*income[:\s]*\$\s*([\d,]+\.?\d*)/gi,
+      /grants?[:\s]*\$\s*([\d,]+\.?\d*)/gi,
+      /grant\s*-?\s*[\w\s]+[:\s]*\$\s*([\d,]+\.?\d*)/gi, // "Grant - XYZ Foundation: $5000"
     ],
     equipmentSales: [
-      /sales\s*of\s*equipment[:\s]*\$?([\d,]+\.?\d*)/i,
-      /equipment\s*sales[:\s]*\$?([\d,]+\.?\d*)/i,
-      /equipment\s*revenue[:\s]*\$?([\d,]+\.?\d*)/i,
+      /sales\s*of\s*equipment[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /equipment\s*sales[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /equipment\s*revenue[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     aging30: [
-      /0-30\s*days?[:\s]*\$?([\d,]+\.?\d*)/i,
-      /current[:\s]*\$?([\d,]+\.?\d*)/i,
+      /0-30\s*days?[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /current[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     aging60: [
-      /31-60\s*days?[:\s]*\$?([\d,]+\.?\d*)/i,
-      /60\s*days?[:\s]*\$?([\d,]+\.?\d*)/i,
+      /31-60\s*days?[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /60\s*days?[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     aging90: [
-      /61-90\s*days?[:\s]*\$?([\d,]+\.?\d*)/i,
-      /90\s*days?[:\s]*\$?([\d,]+\.?\d*)/i,
+      /61-90\s*days?[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /90\s*days?[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
     aging90Plus: [
-      /90\+\s*days?[:\s]*\$?([\d,]+\.?\d*)/i,
-      /over\s*90[:\s]*\$?([\d,]+\.?\d*)/i,
+      /90\+\s*days?[:\s]*\$\s*([\d,]+\.?\d*)/i,
+      /over\s*90[:\s]*\$\s*([\d,]+\.?\d*)/i,
     ],
   };
 
@@ -146,12 +148,16 @@ export function parseFinancialDataFromText(text: string): Partial<FinancialData>
     }
   }
   
+  // Extract all grant revenue entries (can be multiple grants)
+  let totalGrantRevenue = 0;
   for (const pattern of patterns.grantRevenue) {
-    const match = text.match(pattern);
-    if (match) {
-      incomeCategories.grantRevenue = parseCurrency(match[1]);
-      break;
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      totalGrantRevenue += parseCurrency(match[1]);
     }
+  }
+  if (totalGrantRevenue > 0) {
+    incomeCategories.grantRevenue = totalGrantRevenue;
   }
   
   for (const pattern of patterns.equipmentSales) {
@@ -216,9 +222,12 @@ export function parseFinancialDataFromText(text: string): Partial<FinancialData>
 
 /**
  * Parse currency string to number
+ * Handles: $1,234.56, 1234.56, $1234, 1,234, etc.
  */
 function parseCurrency(value: string): number {
-  return parseFloat(value.replace(/,/g, '')) || 0;
+  // Remove dollar signs, commas, and extra spaces
+  const cleaned = value.replace(/[$,\s]/g, '');
+  return parseFloat(cleaned) || 0;
 }
 
 /**
