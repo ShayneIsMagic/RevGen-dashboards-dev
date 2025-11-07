@@ -64,5 +64,15 @@ export const storage = {
   async saveFormerClients(items: PipelineItem[]): Promise<void> {
     await localforage.setItem('formerClients', items);
   },
+
+  // Financial Data
+  async getFinancialData(period: 'month' | 'quarter' | 'year', date: string): Promise<any | null> {
+    const key = `financial_${period}_${date}`;
+    return await localforage.getItem(key);
+  },
+  async saveFinancialData(period: 'month' | 'quarter' | 'year', date: string, data: any): Promise<void> {
+    const key = `financial_${period}_${date}`;
+    await localforage.setItem(key, data);
+  },
 };
 

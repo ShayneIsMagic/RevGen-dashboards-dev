@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Upload, FileDown, Calendar, DollarSign, TrendingUp, TrendingDown, X } from './icons';
 import { parseFinancialDataFromText } from '@/lib/pdfParser';
+import { storage } from '@/lib/storage';
 import type { PipelineItem } from '@/types';
 
 interface FinancialData {
@@ -65,22 +66,20 @@ export default function FinancialDashboard() {
   const [pdfText, setPdfText] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Load saved financial data for selected period
-    loadFinancialData();
-  }, [selectedPeriod, periodDate]);
-
-  const loadFinancialData = async () => {
+  const loadFinancialData = useCallback(async () => {
     try {
-      const key = `financial_${selectedPeriod}_${periodDate}`;
-      const saved = localStorage.getItem(key);
+      const saved = await storage.getFinancialData(selectedPeriod, periodDate);
       if (saved) {
-        setFinancialData(JSON.parse(saved));
+        setFinancialData(saved);
       }
     } catch (error) {
-      console.error('Error loading financial data:', error);
+      // Silent fail - no data saved yet
     }
-  };
+  }, [selectedPeriod, periodDate]);
+
+  useEffect(() => {
+    loadFinancialData();
+  }, [loadFinancialData]);
 
   const saveFinancialData = async (data: FinancialData) => {
     try {
@@ -89,11 +88,10 @@ export default function FinancialDashboard() {
         data.runRate = calculateRunRate(data.expenses.total, selectedPeriod, periodDate);
       }
       
-      const key = `financial_${selectedPeriod}_${periodDate}`;
-      localStorage.setItem(key, JSON.stringify(data));
+      await storage.saveFinancialData(selectedPeriod, periodDate, data);
       setFinancialData(data);
     } catch (error) {
-      console.error('Error saving financial data:', error);
+      alert('Error saving financial data. Please try again.');
     }
   };
 
@@ -133,17 +131,12 @@ export default function FinancialDashboard() {
       }
       
       setPdfText(fullText);
-      console.log('✓ PDF text extracted successfully, length:', fullText.length);
-      console.log('First 500 chars:', fullText.substring(0, 500));
       
       // Automatically parse after extraction
-      // Pass the text directly to avoid React state timing issues
       setTimeout(() => {
-        console.log('Starting automatic parse...');
         handlePDFTextParse(fullText);
       }, 200);
-    } catch (error: any) {
-      console.error('Error reading PDF:', error);
+    } catch (error) {
       
       // Fall back to manual text entry
       alert(
@@ -171,50 +164,18 @@ export default function FinancialDashboard() {
       return;
     }
 
-    console.log('Starting parse with text length:', textToParse.length);
     setLoading(true);
     
     try {
-      console.log('Step 1: Calling parseFinancialReport directly...');
-      // Parse directly - we don't need the intermediate parsed object
       const financialData = parseFinancialReport(textToParse, {});
-      console.log('Step 2: parseFinancialReport completed');
       
-      // Debug: Log parsed data - show raw text matches too
-      console.log('=== PARSING DEBUG ===');
-      console.log('Searching for "Total Income" in text...');
-      const incomeMatch = textToParse.match(/total\s+income[^\n]*/i);
-      console.log('Found "Total Income" line:', incomeMatch ? incomeMatch[0] : 'NOT FOUND');
-      console.log('Searching for "Total Expenses" in text...');
-      const expenseMatch = textToParse.match(/total\s+expenses?[^\n]*/i);
-      console.log('Found "Total Expenses" line:', expenseMatch ? expenseMatch[0] : 'NOT FOUND');
-      console.log('Parsed Income Categories:', financialData.income.categories);
-      console.log('Total Income (calculated):', financialData.income.total);
-      console.log('Parsed Expense Categories:', financialData.expenses.categories);
-      console.log('Total Expenses (calculated):', financialData.expenses.total);
-      console.log('Gross Profit:', financialData.grossProfit.total);
-      console.log('===================');
-      console.log('Parsed receivables:', financialData.receivables.length);
-      console.log('Total receivables amount:', financialData.receivables.reduce((sum, r) => sum + r.amount, 0));
-      console.log('Receivables by aging:', {
-        '90+': financialData.receivables.filter(r => r.daysOutstanding > 90).reduce((sum, r) => sum + r.amount, 0),
-        '61-90': financialData.receivables.filter(r => r.daysOutstanding > 60 && r.daysOutstanding <= 90).reduce((sum, r) => sum + r.amount, 0),
-        '31-60': financialData.receivables.filter(r => r.daysOutstanding > 30 && r.daysOutstanding <= 60).reduce((sum, r) => sum + r.amount, 0),
-        '1-30': financialData.receivables.filter(r => r.daysOutstanding > 0 && r.daysOutstanding <= 30).reduce((sum, r) => sum + r.amount, 0),
-        'current': financialData.receivables.filter(r => r.daysOutstanding <= 0).reduce((sum, r) => sum + r.amount, 0),
-      });
-      
-      console.log('Step 4: Saving financial data...');
       saveFinancialData(financialData);
-      console.log('Step 5: Data saved, closing modal...');
       setShowPDFUpload(false);
       setPdfText('');
       setLoading(false);
-      console.log('✓ Parse and import completed successfully!');
-    } catch (error: any) {
-      console.error('Parse error:', error);
-      console.error('Error stack:', error.stack);
-      alert('Error parsing PDF: ' + error.message + '\n\nCheck the console for details.');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert('Error parsing PDF: ' + errorMessage + '\n\nPlease ensure the PDF format is correct and try again.');
       setLoading(false);
     }
   };
@@ -318,7 +279,6 @@ export default function FinancialDashboard() {
           if (amount >= 1000 && !isAccountNumber) {
             totalIncomeAmount = amount;
             totalIncomeFound = true;
-            console.log('✓ Found Total Income:', amount);
             break;
           }
         }
