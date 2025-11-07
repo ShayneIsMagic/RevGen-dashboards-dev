@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, FileDown, Calendar, DollarSign, TrendingUp, TrendingDown, X } from './icons';
-import { parseFinancialDataFromText } from '@/lib/pdfParser';
+import { Upload, FileDown, DollarSign, TrendingUp, TrendingDown, X } from './icons';
 import { storage } from '@/lib/storage';
-import type { PipelineItem } from '@/types';
+
+interface PDFTextItem {
+  str?: string;
+  [key: string]: unknown;
+}
 
 interface FinancialData {
   period: 'month' | 'quarter' | 'year';
@@ -72,7 +75,7 @@ export default function FinancialDashboard() {
       if (saved) {
         setFinancialData(saved);
       }
-    } catch (error) {
+    } catch {
       // Silent fail - no data saved yet
     }
   }, [selectedPeriod, periodDate]);
@@ -90,7 +93,7 @@ export default function FinancialDashboard() {
       
       await storage.saveFinancialData(selectedPeriod, periodDate, data);
       setFinancialData(data);
-    } catch (error) {
+    } catch {
       alert('Error saving financial data. Please try again.');
     }
   };
@@ -126,7 +129,7 @@ export default function FinancialDashboard() {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        const pageText = textContent.items.map((item: PDFTextItem) => item.str || '').join(' ');
         fullText += pageText + '\n';
       }
       
@@ -136,8 +139,7 @@ export default function FinancialDashboard() {
       setTimeout(() => {
         handlePDFTextParse(fullText);
       }, 200);
-    } catch (error) {
-      
+    } catch {
       // Fall back to manual text entry
       alert(
         'Automatic PDF reading failed. Please paste the PDF text manually.\n\n' +
@@ -167,7 +169,7 @@ export default function FinancialDashboard() {
     setLoading(true);
     
     try {
-      const financialData = parseFinancialReport(textToParse, {});
+      const financialData = parseFinancialReport(textToParse);
       
       saveFinancialData(financialData);
       setShowPDFUpload(false);
@@ -180,7 +182,7 @@ export default function FinancialDashboard() {
     }
   };
 
-  const parseFinancialReport = (text: string, parsed: any): FinancialData => {
+  const parseFinancialReport = (text: string): FinancialData => {
     // Parse income categories
     const incomeCategories = parseIncomeCategories(text);
     
@@ -290,17 +292,6 @@ export default function FinancialDashboard() {
     const categoryPattern = /(\d{4})\s+(Consulting|Software|Education\/Training|Education|Training|Services|Products|Other)\s+(?:Revenue|Income)?\s+([\d,]+\.\d{2})/gi;
     
     let match;
-    const knownCategories: { [key: string]: string } = {
-      'consulting': 'Consulting',
-      'software': 'Software',
-      'education/training': 'Education/Training',
-      'education': 'Education/Training',
-      'training': 'Education/Training',
-      'services': 'Services',
-      'products': 'Products',
-      'other': 'Other',
-    };
-    
     while ((match = categoryPattern.exec(text)) !== null) {
       const accountNumber = match[1];
       const categoryName = match[2]?.trim();
@@ -528,7 +519,7 @@ export default function FinancialDashboard() {
     let match;
     while ((match = invoicePattern.exec(text)) !== null) {
       const invoiceDateStr = match[1];
-      const invoiceNum = match[2];
+      // match[2] is invoice number - not currently used
       const customer = match[3]?.trim();
       const dueDateStr = match[4];
       const amountStr = match[5];
@@ -750,7 +741,7 @@ export default function FinancialDashboard() {
                     />
                   </label>
                   <p className="text-xs text-gray-500 mb-4">
-                    Or paste PDF text content below if automatic extraction doesn't work
+                    Or paste PDF text content below if automatic extraction doesn&apos;t work
                   </p>
                 </div>
 

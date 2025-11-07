@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Upload, X } from './icons';
-import { parseFinancialDataFromText, createGoalsFromFinancialData } from '@/lib/pdfParser';
+import { parseFinancialDataFromText, createGoalsFromFinancialData, type FinancialData } from '@/lib/pdfParser';
 import type { Goal } from '@/types';
 
 interface PDFImportDialogProps {
@@ -13,7 +13,7 @@ interface PDFImportDialogProps {
 
 export default function PDFImportDialog({ isOpen, onClose, onImport }: PDFImportDialogProps) {
   const [pdfText, setPdfText] = useState('');
-  const [parsedData, setParsedData] = useState<any>(null);
+  const [parsedData, setParsedData] = useState<Partial<FinancialData> | null>(null);
   const [period, setPeriod] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
   const [targetDate, setTargetDate] = useState('');
   const [error, setError] = useState('');
@@ -47,8 +47,9 @@ export default function PDFImportDialog({ isOpen, onClose, onImport }: PDFImport
       const data = parseFinancialDataFromText(text);
       setParsedData(data);
       setError('');
-    } catch (err: any) {
-      setError('Error parsing data: ' + err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError('Error parsing data: ' + errorMessage);
     }
   };
 
@@ -63,7 +64,7 @@ export default function PDFImportDialog({ isOpen, onClose, onImport }: PDFImport
         ...parsedData,
         period,
         date: new Date().toISOString(),
-      } as any,
+      } as FinancialData,
       period,
       targetDate
     );
@@ -169,7 +170,7 @@ export default function PDFImportDialog({ isOpen, onClose, onImport }: PDFImport
               </label>
               <select
                 value={period}
-                onChange={(e) => setPeriod(e.target.value as any)}
+                onChange={(e) => setPeriod(e.target.value as 'monthly' | 'quarterly' | 'annual')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="monthly">Monthly</option>

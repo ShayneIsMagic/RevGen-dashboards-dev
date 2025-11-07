@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePipelineData } from '@/hooks/useLocalForage';
 import { storage } from '@/lib/storage';
 import { calculateGoalMetrics } from '@/lib/utils';
@@ -62,7 +62,6 @@ export default function PipelineManager() {
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
   const [showPDFImport, setShowPDFImport] = useState(false);
 
   const [newItem, setNewItem] = useState({
@@ -109,13 +108,8 @@ export default function PipelineManager() {
     unit: '$',
   });
 
-  useEffect(() => {
-    if (salesPipeline.length < 15) {
-      setShowAlert(true);
-    } else {
-      setShowAlert(false);
-    }
-  }, [salesPipeline.length]);
+  // Compute alert state directly from salesPipeline length
+  const shouldShowAlert = salesPipeline.length < 15;
 
   // Goal Management
   const addGoal = async () => {
@@ -183,7 +177,7 @@ export default function PipelineManager() {
     setShowGoalForm(false);
   };
 
-  const updateGoal = async (goalId: number, field: keyof Goal, value: any) => {
+  const updateGoal = async (goalId: number, field: keyof Goal, value: Goal[keyof Goal]) => {
     const updatedGoals = goals.map((goal) =>
       goal.id === goalId ? { ...goal, [field]: value } : goal
     );
@@ -242,7 +236,7 @@ export default function PipelineManager() {
     if (!lead) return;
 
     const interactionType = prompt('Interaction type (text/phone/email/in-person):');
-    if (!interactionType || !interactionTypes.includes(interactionType as any)) {
+    if (!interactionType || !interactionTypes.includes(interactionType as typeof interactionTypes[number])) {
       alert('Invalid interaction type');
       return;
     }
@@ -257,7 +251,7 @@ export default function PipelineManager() {
             interactions: [
               ...l.interactions,
               {
-                type: interactionType as any,
+                type: interactionType as typeof interactionTypes[number],
                 date: new Date().toISOString().split('T')[0],
                 notes: notes || '',
               },
@@ -312,7 +306,7 @@ export default function PipelineManager() {
     setShowAddForm(false);
   };
 
-  const updateItem = async (itemId: number, field: keyof PipelineItem, value: any) => {
+  const updateItem = async (itemId: number, field: keyof PipelineItem, value: PipelineItem[keyof PipelineItem]) => {
     const updatePipeline = (pipeline: PipelineItem[]) => {
       return pipeline.map((item) => (item.id === itemId ? { ...item, [field]: value } : item));
     };
@@ -403,21 +397,6 @@ export default function PipelineManager() {
       const updated = activeClients.filter((i) => i.id !== item.id);
       setActiveClients(updated);
       await storage.saveActiveClients(updated);
-    }
-  };
-
-  const moveToActive = async (item: PipelineItem) => {
-    if (confirm(`Move "${item.prospect}" to Active Clients?`)) {
-      const activeItem = { ...item, startDate: new Date().toISOString() };
-      const updatedActive = [...activeClients, activeItem];
-      setActiveClients(updatedActive);
-      await storage.saveActiveClients(updatedActive);
-
-      if (currentView === 'sales') {
-        const updated = salesPipeline.filter((i) => i.id !== item.id);
-        setSalesPipeline(updated);
-        await storage.saveSalesPipeline(updated);
-      }
     }
   };
 
@@ -726,7 +705,7 @@ export default function PipelineManager() {
         </div>
 
         {/* Alert for low pipeline */}
-        {showAlert && (
+        {shouldShowAlert && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg">
             <div className="flex items-center">
               <AlertCircle className="text-yellow-400 mr-3" size={24} />
@@ -986,7 +965,7 @@ export default function PipelineManager() {
             })}
             {goals.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                No goals yet. Click "Add Goal" to get started.
+                No goals yet. Click &quot;Add Goal&quot; to get started.
               </div>
             )}
           </div>
@@ -1218,7 +1197,7 @@ export default function PipelineManager() {
                 {currentView === 'active' && (
                   <select
                     value={newItem.paymentType}
-                    onChange={(e) => setNewItem({ ...newItem, paymentType: e.target.value as any })}
+                    onChange={(e) => setNewItem({ ...newItem, paymentType: e.target.value as 'MRR' | 'Project' | 'Hybrid' })}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white"
                   >
                     {paymentTypes.map((type) => (
@@ -1423,7 +1402,7 @@ export default function PipelineManager() {
               </table>
               {leadsPipeline.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  No leads yet. Click "Add Lead" to get started.
+                  No leads yet. Click &quot;Add Lead&quot; to get started.
                 </div>
               )}
             </div>
@@ -1743,8 +1722,8 @@ export default function PipelineManager() {
               </table>
               {currentPipeline.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  No items in this pipeline yet. Click "Add{' '}
-                  {currentView === 'sales' ? 'Sales Deal' : 'Client'}" to get started.
+                  No items in this pipeline yet. Click &quot;Add{' '}
+                  {currentView === 'sales' ? 'Sales Deal' : 'Client'}&quot; to get started.
                 </div>
               )}
             </div>
