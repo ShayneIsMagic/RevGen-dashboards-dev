@@ -75,6 +75,7 @@ export default function PipelineManager() {
     notes: '',
     paymentType: 'Project' as 'MRR' | 'Project' | 'Hybrid',
     mrrAmount: '',
+    taskWizeLink: '',
     defaultMeetingLink: '',
     actionItems: [] as Array<{ id: number; description: string; dueDate?: string; completed: boolean; }>,
     interactions: [] as Array<{ type: 'text' | 'phone' | 'email' | 'in-person' | 'video'; date: string; notes: string; meetingLink?: string; actionItems?: Array<{ id: number; description: string; dueDate?: string; completed: boolean; }> }>,
@@ -303,6 +304,7 @@ export default function PipelineManager() {
       notes: '',
       paymentType: 'Project',
       mrrAmount: '',
+      taskWizeLink: '',
       defaultMeetingLink: '',
       actionItems: [],
       interactions: [],
@@ -656,7 +658,12 @@ export default function PipelineManager() {
           return diffA - diffB;
         });
       case 'active':
-        return activeClients;
+        // Group by customer (prospect field) - sort alphabetically by client name, then by project
+        return [...activeClients].sort((a, b) => {
+          const clientCompare = a.prospect.localeCompare(b.prospect);
+          if (clientCompare !== 0) return clientCompare;
+          return a.proposedProject.localeCompare(b.proposedProject);
+        });
       case 'lost':
         return lostDeals;
       case 'former':
@@ -1258,6 +1265,15 @@ export default function PipelineManager() {
                   onChange={(e) => setNewItem({ ...newItem, defaultMeetingLink: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg col-span-2 text-gray-900 placeholder-gray-500"
                 />
+                {currentView === 'active' && (
+                  <input
+                    type="url"
+                    placeholder="TaskWize Project Link (Optional)"
+                    value={newItem.taskWizeLink || ''}
+                    onChange={(e) => setNewItem({ ...newItem, taskWizeLink: e.target.value })}
+                    className="px-3 py-2 border border-gray-300 rounded-lg col-span-2 text-gray-900 placeholder-gray-500"
+                  />
+                )}
               </div>
               <div className="flex gap-2">
                 <button
@@ -1419,14 +1435,21 @@ export default function PipelineManager() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prospect</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proposed Project</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {currentView === 'active' ? 'Client' : 'Prospect'}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {currentView === 'active' ? 'Project' : 'Proposed Project'}
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                     {currentView === 'sales' && (
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stage</th>
                     )}
                     {currentView === 'active' && (
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Type</th>
+                      <>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TaskWize</th>
+                      </>
                     )}
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Next Step</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
@@ -1518,23 +1541,47 @@ export default function PipelineManager() {
                         </td>
                       )}
                       {currentView === 'active' && (
-                        <td className="px-4 py-3">
-                          {editingId === item.id ? (
-                            <select
-                              value={item.paymentType}
-                              onChange={(e) => updateItem(item.id, 'paymentType', e.target.value)}
-                              className="px-2 py-1 border border-gray-300 rounded w-full text-gray-900 bg-white"
-                            >
-                              {paymentTypes.map((type) => (
-                                <option key={type} value={type}>
-                                  {type}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-gray-600 text-sm">{item.paymentType || 'Project'}</span>
-                          )}
-                        </td>
+                        <>
+                          <td className="px-4 py-3">
+                            {editingId === item.id ? (
+                              <select
+                                value={item.paymentType}
+                                onChange={(e) => updateItem(item.id, 'paymentType', e.target.value)}
+                                className="px-2 py-1 border border-gray-300 rounded w-full text-gray-900 bg-white"
+                              >
+                                {paymentTypes.map((type) => (
+                                  <option key={type} value={type}>
+                                    {type}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-gray-600 text-sm">{item.paymentType || 'Project'}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {editingId === item.id ? (
+                              <input
+                                type="url"
+                                value={item.taskWizeLink || ''}
+                                onChange={(e) => updateItem(item.id, 'taskWizeLink', e.target.value)}
+                                placeholder="TaskWize URL"
+                                className="px-2 py-1 border border-gray-300 rounded w-full text-gray-900"
+                              />
+                            ) : item.taskWizeLink ? (
+                              <a
+                                href={item.taskWizeLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 text-sm underline"
+                              >
+                                🔗
+                              </a>
+                            ) : (
+                              <span className="text-gray-400 text-sm">-</span>
+                            )}
+                          </td>
+                        </>
                       )}
                       <td className="px-4 py-3">
                         {editingId === item.id ? (
@@ -1600,6 +1647,7 @@ export default function PipelineManager() {
                                   if (item.mrrAmount) info += `MRR: $${item.mrrAmount.toLocaleString()}/mo\n`;
                                   if (item.salesStage) info += `Stage: ${item.salesStage}\n`;
                                   if (item.paymentType) info += `Payment Type: ${item.paymentType}\n`;
+                                  if (currentView === 'active' && item.taskWizeLink) info += `🔗 TaskWize: ${item.taskWizeLink}\n`;
                                   if (item.nextStep) info += `Next Step: ${item.nextStep}${item.nextStepDate ? ` (${item.nextStepDate})` : ''}\n`;
                                   if (item.notes) info += `Notes: ${item.notes}\n`;
                                   

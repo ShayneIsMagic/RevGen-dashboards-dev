@@ -21,8 +21,8 @@ export interface ActionItem {
 
 export interface PipelineItem {
   id: number;
-  prospect: string;
-  proposedProject: string;
+  prospect: string; // Client name for Active Clients
+  proposedProject: string; // Project name
   amount: number;
   salesStage?: string;
   nextStep: string;
@@ -34,6 +34,7 @@ export interface PipelineItem {
   startDate?: string;
   paymentType?: 'MRR' | 'Project' | 'Hybrid'; // MRR, Project (one-time), or Hybrid
   mrrAmount?: number; // If MRR or Hybrid, the monthly amount
+  taskWizeLink?: string; // Link to TaskWize project (Active Clients)
   // Meeting & Action Items
   defaultMeetingLink?: string; // Zoom/Google Meet link for this deal/client
   actionItems?: ActionItem[]; // General action items for this deal/client
