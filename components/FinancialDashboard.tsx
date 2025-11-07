@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Upload, FileDown, Calendar, DollarSign, TrendingUp, TrendingDown, X } from './icons';
+import { Calendar, DollarSign, TrendingUp, TrendingDown, X, Upload } from './icons';
 import { parseFinancialDataFromText } from '@/lib/pdfParser';
+import Navigation from './Navigation';
 import type { PipelineItem } from '@/types';
 
 interface FinancialData {
@@ -676,52 +677,61 @@ export default function FinancialDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Dashboard</h1>
-              <p className="text-gray-600">View income, expenses, and receivables by period</p>
-            </div>
-            <label className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer">
-              <Upload size={16} /> Upload PDF Report
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handlePDFUpload}
-                className="hidden"
-              />
-            </label>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <Navigation
+        onUploadPDF={handlePDFUpload}
+        showFinancialActions={true}
+      />
 
-          {/* Period Selector */}
-          <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Dashboard</h1>
+          <p className="text-gray-600">View income, expenses, and receivables by period</p>
+        </div>
+
+        {/* Period Selector */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">View Period</label>
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex gap-2">
               <button
                 onClick={() => setSelectedPeriod('month')}
-                className={`px-4 py-2 rounded-lg ${selectedPeriod === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  selectedPeriod === 'month' 
+                    ? 'bg-purple-600 text-white shadow-sm' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
-                Month
+                📅 Month
               </button>
               <button
                 onClick={() => setSelectedPeriod('quarter')}
-                className={`px-4 py-2 rounded-lg ${selectedPeriod === 'quarter' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  selectedPeriod === 'quarter' 
+                    ? 'bg-purple-600 text-white shadow-sm' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
-                Quarter
+                📊 Quarter
               </button>
               <button
                 onClick={() => setSelectedPeriod('year')}
-                className={`px-4 py-2 rounded-lg ${selectedPeriod === 'year' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  selectedPeriod === 'year' 
+                    ? 'bg-purple-600 text-white shadow-sm' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
-                Year
+                📈 Year
               </button>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={getPreviousPeriod}
-                className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                title="Previous period"
               >
                 ←
               </button>
@@ -733,11 +743,12 @@ export default function FinancialDashboard() {
               />
               <button
                 onClick={getNextPeriod}
-                className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                title="Next period"
               >
                 →
               </button>
-              <span className="ml-4 font-semibold">{getPeriodLabel()}</span>
+              <span className="ml-4 text-lg font-semibold text-gray-900">{getPeriodLabel()}</span>
             </div>
           </div>
         </div>
@@ -1149,13 +1160,13 @@ export default function FinancialDashboard() {
           </>
         ) : (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <FileDown className="mx-auto text-gray-400 mb-4" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No Financial Data</h2>
+            <div className="text-6xl mb-4">💰</div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">No Financial Data</h2>
             <p className="text-gray-600 mb-6">
-              Upload a PDF financial report to get started
+              Upload a PDF financial report to view income, expenses, and receivables
             </p>
-            <label className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer">
-              <Upload size={16} /> Upload PDF Report
+            <label className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer transition-colors shadow-sm">
+              📄 Upload PDF Report
               <input
                 type="file"
                 accept=".pdf"
@@ -1163,6 +1174,16 @@ export default function FinancialDashboard() {
                 className="hidden"
               />
             </label>
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg inline-block">
+              <p className="text-sm text-blue-800 text-left">
+                <strong>Tip:</strong> Upload your QuickBooks or accounting software PDF export to automatically import:
+              </p>
+              <ul className="text-sm text-blue-700 text-left mt-2 space-y-1 ml-4">
+                <li>• Income categories and totals</li>
+                <li>• Expense breakdowns</li>
+                <li>• Accounts receivable aging</li>
+              </ul>
+            </div>
           </div>
         )}
       </div>

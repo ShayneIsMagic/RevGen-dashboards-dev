@@ -1,13 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePipelineData } from '@/hooks/useLocalForage';
 import { storage } from '@/lib/storage';
 import { calculateGoalMetrics } from '@/lib/utils';
 import type { Goal, PipelineItem, PipelineType } from '@/types';
-import { Download, Plus, Edit2, Save, X, AlertCircle, Upload, FileDown } from './icons';
+import { Plus, Edit2, Save, X, AlertCircle, FileDown } from './icons';
 import PDFImportDialog from './PDFImportDialog';
+import Navigation from './Navigation';
 import type { LeadItem } from '@/types';
 
 const salesStages = [
@@ -64,6 +64,7 @@ export default function PipelineManager() {
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [showPDFImport, setShowPDFImport] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [newItem, setNewItem] = useState({
     prospect: '',
@@ -591,7 +592,31 @@ export default function PipelineManager() {
   };
 
   const currentPipeline = getCurrentPipeline();
-  const totalPipelineValue = currentPipeline.reduce((sum, item) => sum + (parseFloat(String(item.amount)) || 0), 0);
+  
+  // Filter pipeline based on search query
+  const filteredPipeline = currentPipeline.filter((item) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      item.prospect?.toLowerCase().includes(query) ||
+      item.proposedProject?.toLowerCase().includes(query) ||
+      item.nextStep?.toLowerCase().includes(query) ||
+      item.notes?.toLowerCase().includes(query) ||
+      (item.amount && item.amount.toString().includes(query))
+    );
+  });
+  
+  const totalPipelineValue = filteredPipeline.reduce((sum, item) => sum + (parseFloat(String(item.amount)) || 0), 0);
+  
+  // Filter leads based on search query
+  const filteredLeads = leadsPipeline.filter((lead) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      lead.prospect?.toLowerCase().includes(query) ||
+      lead.company?.toLowerCase().includes(query) ||
+      lead.source?.toLowerCase().includes(query) ||
+      lead.notes?.general?.toLowerCase().includes(query)
+    );
+  });
 
   if (loading) {
     return (
@@ -602,57 +627,67 @@ export default function PipelineManager() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Pipeline Manager</h1>
-              <p className="text-gray-600">Track goals, leads, and client relationships</p>
-            </div>
-            <Link
-              href="/financial"
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              <FileDown size={16} /> Financial Dashboard
-            </Link>
-            <div className="flex gap-2">
-              <button
-                onClick={exportToJSON}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Download size={16} /> Export JSON
-              </button>
-              <button
-                onClick={exportToMarkdown}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                <FileDown size={16} /> Export Markdown
-              </button>
-              <label className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer">
-                <Upload size={16} /> Import JSON
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={importFromJSON}
-                  className="hidden"
-                />
-              </label>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <Navigation
+        onExportJSON={exportToJSON}
+        onImportJSON={importFromJSON}
+      />
+
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pipeline Manager</h1>
+          <p className="text-gray-600">Track goals, leads, and client relationships</p>
+        </div>
+
+        {/* Dashboard Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500">
+            <p className="text-sm text-gray-600 mb-1">Active Goals</p>
+            <p className="text-3xl font-bold text-gray-900">{goals.length}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {goals.filter(g => calculateGoalMetrics(g).onTrack).length} on track
+            </p>
+          </div>
+          
+          <div className={`bg-white rounded-lg shadow-sm p-4 border-l-4 ${salesPipeline.length >= 15 ? 'border-green-500' : 'border-red-500'}`}>
+            <p className="text-sm text-gray-600 mb-1">Sales Pipeline</p>
+            <p className={`text-3xl font-bold ${salesPipeline.length >= 15 ? 'text-green-600' : 'text-red-600'}`}>
+              {salesPipeline.length}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {salesPipeline.length >= 15 ? 'Healthy pipeline' : `${15 - salesPipeline.length} needed`}
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-500">
+            <p className="text-sm text-gray-600 mb-1">Active Clients</p>
+            <p className="text-3xl font-bold text-gray-900">{activeClients.length}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {activeClients.filter(c => c.mrrAmount).length} with MRR
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-indigo-500">
+            <p className="text-sm text-gray-600 mb-1">Pipeline Value</p>
+            <p className="text-3xl font-bold text-gray-900">${(totalPipelineValue ?? 0).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {leadsPipeline.length} leads tracked
+            </p>
           </div>
         </div>
 
         {/* Alert for low pipeline */}
         {showAlert && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg shadow-sm">
             <div className="flex items-center">
-              <AlertCircle className="text-yellow-400 mr-3" size={24} />
+              <AlertCircle className="text-red-500 mr-3" size={24} />
               <div>
-                <p className="font-bold text-yellow-800">Pipeline Below Minimum</p>
-                <p className="text-yellow-700">
-                  Current deals: {salesPipeline.length} / Minimum: 15. Contact leads and set up
-                  discoveries to grow your pipeline.
+                <p className="font-bold text-red-800">⚠️ Pipeline Below Minimum</p>
+                <p className="text-red-700">
+                  Current deals: <span className="font-semibold">{salesPipeline.length}</span> / Minimum: <span className="font-semibold">15</span>. 
+                  Contact leads and set up discoveries to grow your pipeline.
                 </p>
               </div>
             </div>
@@ -879,8 +914,16 @@ export default function PipelineManager() {
               );
             })}
             {goals.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No goals yet. Click "Add Goal" to get started.
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🎯</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No goals yet</h3>
+                <p className="text-gray-600 mb-4">Set targets to track your business growth</p>
+                <button
+                  onClick={() => setShowGoalForm(true)}
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Add Your First Goal
+                </button>
               </div>
             )}
           </div>
@@ -908,37 +951,73 @@ export default function PipelineManager() {
             </button>
           </div>
 
+          {/* Search Bar */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder={`Search ${currentView === 'leads' ? 'leads' : 'deals, clients, or projects'}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            {searchQuery && (
+              <p className="text-sm text-gray-600 mt-2">
+                Found {currentView === 'leads' ? filteredLeads.length : filteredPipeline.length} result(s)
+              </p>
+            )}
+          </div>
+
           {/* View Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200">
+          <div className="flex gap-2 mb-6">
             <button
               onClick={() => setCurrentView('leads')}
-              className={`px-4 py-2 font-medium ${currentView === 'leads' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2 font-medium rounded-lg transition-colors ${
+                currentView === 'leads' 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              🎯 Leads Pipeline ({leadsPipeline.length})
+              🎯 Leads ({leadsPipeline.length})
             </button>
             <button
               onClick={() => setCurrentView('sales')}
-              className={`px-4 py-2 font-medium ${currentView === 'sales' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2 font-medium rounded-lg transition-colors ${
+                currentView === 'sales' 
+                  ? 'bg-purple-600 text-white shadow-sm' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              💼 Sales Pipeline ({salesPipeline.length})
+              💼 Sales ({salesPipeline.length})
             </button>
             <button
               onClick={() => setCurrentView('active')}
-              className={`px-4 py-2 font-medium ${currentView === 'active' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2 font-medium rounded-lg transition-colors ${
+                currentView === 'active' 
+                  ? 'bg-green-600 text-white shadow-sm' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              ✅ Active Clients ({activeClients.length})
+              ✅ Active ({activeClients.length})
             </button>
             <button
               onClick={() => setCurrentView('lost')}
-              className={`px-4 py-2 font-medium ${currentView === 'lost' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2 font-medium rounded-lg transition-colors ${
+                currentView === 'lost' 
+                  ? 'bg-red-600 text-white shadow-sm' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              ❌ Lost Deals ({lostDeals.length})
+              ❌ Lost ({lostDeals.length})
             </button>
             <button
               onClick={() => setCurrentView('former')}
-              className={`px-4 py-2 font-medium ${currentView === 'former' ? 'border-b-2 border-gray-600 text-gray-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2 font-medium rounded-lg transition-colors ${
+                currentView === 'former' 
+                  ? 'bg-gray-600 text-white shadow-sm' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              📦 Former Clients ({formerClients.length})
+              📦 Former ({formerClients.length})
             </button>
           </div>
 
@@ -1175,7 +1254,7 @@ export default function PipelineManager() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {leadsPipeline.map((lead) => (
+                  {filteredLeads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <span className="font-medium text-gray-900">{lead.prospect}</span>
@@ -1253,9 +1332,30 @@ export default function PipelineManager() {
                   ))}
                 </tbody>
               </table>
-              {leadsPipeline.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No leads yet. Click "Add Lead" to get started.
+              {filteredLeads.length === 0 && !searchQuery && leadsPipeline.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🎯</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No leads yet</h3>
+                  <p className="text-gray-600 mb-4">Start tracking your prospects and opportunities</p>
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Add Your First Lead
+                  </button>
+                </div>
+              )}
+              {filteredLeads.length === 0 && searchQuery && (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-4">🔍</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No results found</h3>
+                  <p className="text-gray-600 mb-4">Try a different search term</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  >
+                    Clear Search
+                  </button>
                 </div>
               )}
             </div>
@@ -1282,7 +1382,7 @@ export default function PipelineManager() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {currentPipeline.map((item) => (
+                  {filteredPipeline.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         {editingId === item.id ? (
@@ -1464,10 +1564,43 @@ export default function PipelineManager() {
                   ))}
                 </tbody>
               </table>
-              {currentPipeline.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No items in this pipeline yet. Click "Add{' '}
-                  {currentView === 'sales' ? 'Sales Deal' : 'Client'}" to get started.
+              {filteredPipeline.length === 0 && !searchQuery && currentPipeline.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">
+                    {currentView === 'sales' ? '💼' : currentView === 'active' ? '✅' : currentView === 'lost' ? '❌' : '📦'}
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    No {currentView === 'sales' ? 'sales deals' : currentView === 'active' ? 'active clients' : currentView === 'lost' ? 'lost deals' : 'former clients'} yet
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    {currentView === 'sales' ? 'Add deals to track your sales progress' : 
+                     currentView === 'active' ? 'Win deals to convert them to active clients' :
+                     currentView === 'lost' ? 'No lost deals - great job!' :
+                     'No former clients in this category'}
+                  </p>
+                  {(currentView === 'sales' || currentView === 'active') && (
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className={`px-6 py-2 rounded-lg text-white hover:opacity-90 transition-colors ${
+                        currentView === 'sales' ? 'bg-purple-600' : 'bg-green-600'
+                      }`}
+                    >
+                      Add {currentView === 'sales' ? 'Sales Deal' : 'Client'}
+                    </button>
+                  )}
+                </div>
+              )}
+              {filteredPipeline.length === 0 && searchQuery && (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-4">🔍</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No results found</h3>
+                  <p className="text-gray-600 mb-4">Try a different search term</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  >
+                    Clear Search
+                  </button>
                 </div>
               )}
             </div>
