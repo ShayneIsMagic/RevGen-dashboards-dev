@@ -122,22 +122,7 @@ export default function PipelineManager() {
     const currentValue = parseFloat(newGoal.currentValue) || startingValue;
     const targetValue = parseFloat(newGoal.targetValue);
 
-    // Validation - check for negative numbers first
-    if (startingValue < 0) {
-      alert('Starting Value cannot be negative. Please use 0 or a positive number.');
-      return;
-    }
-
-    if (currentValue < 0) {
-      alert('Current Value cannot be negative. Please use 0 or a positive number.');
-      return;
-    }
-
-    if (targetValue < 0) {
-      alert('Target Value cannot be negative. Please use a positive number.');
-      return;
-    }
-
+    // Validation - allow negative starting values (losses) but ensure logical progression
     if (targetValue <= startingValue) {
       alert('Target Value must be greater than Starting Value');
       return;
@@ -178,15 +163,6 @@ export default function PipelineManager() {
   };
 
   const updateGoal = async (goalId: number, field: keyof Goal, value: any) => {
-    // Validate numeric fields
-    if (field === 'startingValue' || field === 'currentValue' || field === 'targetValue') {
-      const numValue = parseFloat(value);
-      if (numValue < 0) {
-        alert(`${field === 'startingValue' ? 'Starting' : field === 'currentValue' ? 'Current' : 'Target'} Value cannot be negative`);
-        return;
-      }
-    }
-
     const updatedGoals = goals.map((goal) =>
       goal.id === goalId ? { ...goal, [field]: value } : goal
     );
@@ -746,27 +722,24 @@ export default function PipelineManager() {
                 </select>
                 <input
                   type="number"
-                  min="0"
                   step="0.01"
-                  placeholder="Starting Value"
+                  placeholder="Starting Value (can be negative for losses)"
                   value={newGoal.startingValue}
                   onChange={(e) => setNewGoal({ ...newGoal, startingValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
-                  title="Starting value (must be 0 or positive)"
+                  title="Starting value (can be negative to track recovery from losses)"
                 />
                 <input
                   type="number"
-                  min="0"
                   step="0.01"
                   placeholder="Current Value"
                   value={newGoal.currentValue}
                   onChange={(e) => setNewGoal({ ...newGoal, currentValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
-                  title="Current value (must be 0 or positive)"
+                  title="Current value (where you are now)"
                 />
                 <input
                   type="number"
-                  min="0"
                   step="0.01"
                   placeholder="Target Value"
                   value={newGoal.targetValue}

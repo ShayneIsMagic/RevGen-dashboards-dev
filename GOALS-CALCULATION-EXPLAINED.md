@@ -10,18 +10,18 @@ The Goals feature tracks progress from a **Starting Value** → **Current Value*
 
 ### 1. **Starting Value (FROM)**
 - Where you began (e.g., $10,000 MRR at start of quarter)
-- Can be **0** or positive
-- ⚠️ **Negative numbers ARE technically accepted but NOT recommended**
+- Can be **negative, zero, or positive**
+- ✅ **Negative values are VALID** for tracking recovery from losses (e.g., -$26,635 negative cash flow)
 
 ### 2. **Current Value**
 - Where you are now (e.g., $12,500 MRR today)
-- Should be between Starting and Target
-- ⚠️ **Negative numbers ARE technically accepted but will break calculations**
+- Should be between Starting and Target (or progressing toward Target)
+- ✅ **Can be negative** if recovering from losses
 
 ### 3. **Target Value (TO)**
 - Where you want to be by the deadline (e.g., $20,000 MRR by Dec 31)
-- Should be greater than Starting Value
-- ⚠️ **Negative numbers ARE technically accepted but will break calculations**
+- Must be greater than Starting Value
+- ✅ **Usually positive** but can be negative if goal is to reduce losses
 
 ### 4. **Target Date**
 - Deadline for achieving the goal
@@ -150,41 +150,44 @@ TO:      50,000   (fully paid off target)
 
 ---
 
-## ⚠️ **Current Issues with Negative Numbers**
+## ✅ **Negative Numbers ARE Supported**
 
-### **Problems:**
+### **Valid Use Cases:**
 
-1. **No Input Validation**: Fields allow negative numbers but shouldn't
-2. **Confusing for Debt**: Negative targets don't show progress correctly
-3. **Run Rate Display**: Negative run rates show as "negative dollars per day" which is confusing
+1. **Recovery from Losses**: Track progress from negative to positive (e.g., -$26k → $8k → $70k)
+2. **Cash Flow Improvement**: From negative cash flow to profitability
+3. **Profit Recovery**: From operating losses to profit targets
 
-### **What Should Be Fixed:**
+### **How the Math Handles It:**
 
-```javascript
-// Add to input fields:
-<input
-  type="number"
-  min="0"  // ← PREVENT negative numbers
-  step="0.01"
-  ...
-/>
-```
+The calculations correctly handle negative starting values:
+- FROM: -$26,635 (loss)
+- CURRENT: $8,000 (profit!)
+- TO: $70,000 (target)
+
+**Calculation:**
+- Total journey: $70,000 - (-$26,635) = $96,635 (full distance)
+- Progress made: $8,000 - (-$26,635) = $34,635 (moved this far)
+- Progress %: $34,635 / $96,635 = 35.8% ✅ CORRECT!
+
+This is a **valid and important business scenario**!
 
 ---
 
 ## 🎯 **Best Practices**
 
 ### ✅ **DO:**
-1. Use positive numbers for all three values
-2. Make sure: Starting < Current < Target (for growth)
+1. Use negative Starting Value when tracking recovery from losses
+2. Make sure: Starting < Current ≤ Target (logical progression)
 3. Set realistic target dates
 4. Update Current Value regularly
+5. Use negative numbers thoughtfully (they represent real business situations)
 
 ### ❌ **DON'T:**
-1. Use negative numbers (even though system allows it)
-2. Set Current Value higher than Target
-3. Set Starting Value higher than Target
-4. Set dates in the past
+1. Set Current Value higher than Target (can't be past your goal)
+2. Set Target lower than or equal to Starting (need to be progressing forward)
+3. Set dates in the past
+4. Set Current Value lower than Starting (that's regression, not progress)
 
 ---
 
@@ -209,36 +212,33 @@ The goal card shows:
 
 ---
 
-## 🔧 **Recommended Improvements**
+## 🔧 **Current Implementation**
 
-### 1. **Add Input Validation**
-```tsx
-<input
-  type="number"
-  min="0"
-  placeholder="Starting Value"
-  required
-/>
-```
-
-### 2. **Add Validation Logic**
+### **Validation Logic (Already Implemented)**
 ```typescript
+// Ensures logical progression
 if (targetValue <= startingValue) {
   alert('Target must be greater than Starting Value');
   return;
 }
 
-if (currentValue < startingValue || currentValue > targetValue) {
-  alert('Current must be between Starting and Target');
+if (currentValue < startingValue) {
+  alert('Current cannot be less than Starting (that's regression)');
+  return;
+}
+
+if (currentValue > targetValue) {
+  alert('Current cannot exceed Target (you've already achieved it!)');
   return;
 }
 ```
 
-### 3. **Better Negative Number Handling**
+### **Math Handles Negative Numbers Correctly**
 ```typescript
-// In calculateGoalMetrics:
-const currentRunRate = Math.abs(daysElapsed > 0 ? currentProgress / daysElapsed : 0);
-const requiredRunRate = Math.abs(daysRemaining > 0 ? remaining / daysRemaining : 0);
+// The formulas work perfectly with negative values:
+const total = target - starting;           // Works: $70k - (-$26k) = $96k
+const currentProgress = current - starting; // Works: $8k - (-$26k) = $34k
+const remaining = target - current;         // Works: $70k - $8k = $62k
 ```
 
 ---
@@ -246,13 +246,22 @@ const requiredRunRate = Math.abs(daysRemaining > 0 ? remaining / daysRemaining :
 ## Summary
 
 **Current State:**
-- ✅ Math formulas are correct for positive numbers
-- ✅ Math ALSO works for negative starting values (e.g., -$5k to $10k)
-- ⚠️ No validation prevents bad inputs
-- ❌ Debt reduction tracking is confusing
+- ✅ Math formulas work correctly for ALL numbers (negative, zero, positive)
+- ✅ Negative starting values are VALID for tracking recovery from losses
+- ✅ Validation ensures logical progression (Starting < Current ≤ Target)
+- ✅ Run rate calculations handle negative starting values correctly
 
-**Recommendation:**
-- Add `min="0"` to all number inputs
-- Add validation to ensure: Starting < Current ≤ Target
-- Consider adding a "Debt Reduction" goal type that handles the inverse math
+**Example: Recovery from Loss**
+```
+FROM: -$26,635.29 (operating at a loss)
+CURRENT: $8,000 (achieved profitability!)
+TO: $70,000 (growth target)
+
+Progress: 35.8% of the journey complete ✅
+Current run rate: $11,545/day
+Required run rate: $2,696/day
+Status: ✓ On Track (running faster than needed)
+```
+
+This is **exactly the kind of business scenario** the goals feature should support!
 
