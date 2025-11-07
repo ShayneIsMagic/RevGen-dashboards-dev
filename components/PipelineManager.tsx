@@ -122,7 +122,22 @@ export default function PipelineManager() {
     const currentValue = parseFloat(newGoal.currentValue) || startingValue;
     const targetValue = parseFloat(newGoal.targetValue);
 
-    // Validation
+    // Validation - check for negative numbers first
+    if (startingValue < 0) {
+      alert('Starting Value cannot be negative. Please use 0 or a positive number.');
+      return;
+    }
+
+    if (currentValue < 0) {
+      alert('Current Value cannot be negative. Please use 0 or a positive number.');
+      return;
+    }
+
+    if (targetValue < 0) {
+      alert('Target Value cannot be negative. Please use a positive number.');
+      return;
+    }
+
     if (targetValue <= startingValue) {
       alert('Target Value must be greater than Starting Value');
       return;
@@ -163,6 +178,15 @@ export default function PipelineManager() {
   };
 
   const updateGoal = async (goalId: number, field: keyof Goal, value: any) => {
+    // Validate numeric fields
+    if (field === 'startingValue' || field === 'currentValue' || field === 'targetValue') {
+      const numValue = parseFloat(value);
+      if (numValue < 0) {
+        alert(`${field === 'startingValue' ? 'Starting' : field === 'currentValue' ? 'Current' : 'Target'} Value cannot be negative`);
+        return;
+      }
+    }
+
     const updatedGoals = goals.map((goal) =>
       goal.id === goalId ? { ...goal, [field]: value } : goal
     );
