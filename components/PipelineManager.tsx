@@ -6,7 +6,7 @@ import { usePipelineData } from '@/hooks/useLocalForage';
 import { storage } from '@/lib/storage';
 import { calculateGoalMetrics } from '@/lib/utils';
 import type { Goal, PipelineItem, PipelineType } from '@/types';
-import { Download, Plus, Edit2, Save, X, AlertCircle, Upload, FileDown } from './icons';
+import { Download, Plus, Edit2, Save, X, AlertCircle, Upload, FileDown, Trash } from './icons';
 import PDFImportDialog from './PDFImportDialog';
 import type { LeadItem } from '@/types';
 
@@ -1409,12 +1409,13 @@ export default function PipelineManager() {
                           >
                             +
                           </button>
-                          <button
-                            onClick={() => deleteLead(lead.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <X size={16} />
-                          </button>
+                        <button
+                          onClick={() => deleteLead(lead.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete Lead"
+                        >
+                          <Trash size={16} />
+                        </button>
                         </div>
                       </td>
                     </tr>
@@ -1725,12 +1726,13 @@ export default function PipelineManager() {
                                   📦
                                 </button>
                               )}
-                              <button
-                                onClick={() => deleteItem(item.id)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <X size={16} />
-                              </button>
+                            <button
+                              onClick={() => deleteItem(item.id)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Delete"
+                            >
+                              <Trash size={16} />
+                            </button>
                             </>
                           )}
                         </div>
