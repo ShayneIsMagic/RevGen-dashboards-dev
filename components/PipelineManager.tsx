@@ -904,18 +904,18 @@ export default function PipelineManager() {
                       <div className="grid grid-cols-4 gap-4 text-sm">
                         <div>
                           <p className="text-gray-500">Progress</p>
-                          <p className="font-semibold text-lg">{metrics.progress}%</p>
+                          <p className="font-semibold text-lg text-gray-900">{metrics.progress}%</p>
                         </div>
                         <div>
                           <p className="text-gray-500">Remaining</p>
-                          <p className="font-semibold text-lg">
+                          <p className="font-semibold text-lg text-gray-900">
                             {goal.unit}
                             {(metrics.remaining ?? 0).toLocaleString()}
                           </p>
                         </div>
                         <div>
                           <p className="text-gray-500">Days Left</p>
-                          <p className="font-semibold text-lg">{metrics.daysRemaining}</p>
+                          <p className="font-semibold text-lg text-gray-900">{metrics.daysRemaining}</p>
                         </div>
                         <div>
                           <p className="text-gray-500">Status</p>
@@ -927,15 +927,15 @@ export default function PipelineManager() {
                         </div>
                       </div>
                       <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-700">
                           Current run rate:{' '}
-                          <span className="font-semibold">
+                          <span className="font-semibold text-gray-900">
                             {goal.unit}
                             {(metrics.currentRunRate ?? 0).toFixed(2)}/day
                           </span>
                           {' | '}
                           Required:{' '}
-                          <span className="font-semibold">
+                          <span className="font-semibold text-gray-900">
                             {goal.unit}
                             {(metrics.requiredRunRate ?? 0).toFixed(2)}/day
                           </span>
