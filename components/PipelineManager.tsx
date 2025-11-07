@@ -75,6 +75,9 @@ export default function PipelineManager() {
     notes: '',
     paymentType: 'Project' as 'MRR' | 'Project' | 'Hybrid',
     mrrAmount: '',
+    defaultMeetingLink: '',
+    actionItems: [] as Array<{ id: number; description: string; dueDate?: string; completed: boolean; }>,
+    interactions: [] as Array<{ type: 'text' | 'phone' | 'email' | 'in-person' | 'video'; date: string; notes: string; meetingLink?: string; actionItems?: Array<{ id: number; description: string; dueDate?: string; completed: boolean; }> }>,
   });
 
   const [newLead, setNewLead] = useState({
@@ -300,6 +303,9 @@ export default function PipelineManager() {
       notes: '',
       paymentType: 'Project',
       mrrAmount: '',
+      defaultMeetingLink: '',
+      actionItems: [],
+      interactions: [],
     });
     setShowAddForm(false);
   };
@@ -1214,6 +1220,13 @@ export default function PipelineManager() {
                   className="px-3 py-2 border border-gray-300 rounded-lg col-span-2 text-gray-900 placeholder-gray-500"
                   rows={2}
                 />
+                <input
+                  type="url"
+                  placeholder="Meeting Link (Zoom/Google Meet - Optional)"
+                  value={newItem.defaultMeetingLink || ''}
+                  onChange={(e) => setNewItem({ ...newItem, defaultMeetingLink: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-lg col-span-2 text-gray-900 placeholder-gray-500"
+                />
               </div>
               <div className="flex gap-2">
                 <button
@@ -1523,6 +1536,67 @@ export default function PipelineManager() {
                             </>
                           ) : (
                             <>
+                              <button
+                                onClick={() => {
+                                  // Combined view for Sales/Active/Lost/Former
+                                  let info = `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                                  info += `📋 ${currentView === 'sales' ? 'DEAL' : currentView === 'active' ? 'CLIENT' : currentView === 'lost' ? 'LOST DEAL' : 'FORMER CLIENT'}: ${item.prospect}\n`;
+                                  info += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                                  
+                                  // Meeting Link
+                                  if (item.defaultMeetingLink) {
+                                    info += `🔗 DEFAULT MEETING: ${item.defaultMeetingLink}\n\n`;
+                                  }
+                                  
+                                  // Deal/Client Info
+                                  info += `💼 ${currentView === 'active' ? 'CLIENT' : 'DEAL'} INFO:\n`;
+                                  info += `Project: ${item.proposedProject}\n`;
+                                  info += `Amount: $${(item.amount ?? 0).toLocaleString()}\n`;
+                                  if (item.mrrAmount) info += `MRR: $${item.mrrAmount.toLocaleString()}/mo\n`;
+                                  if (item.salesStage) info += `Stage: ${item.salesStage}\n`;
+                                  if (item.paymentType) info += `Payment Type: ${item.paymentType}\n`;
+                                  if (item.nextStep) info += `Next Step: ${item.nextStep}${item.nextStepDate ? ` (${item.nextStepDate})` : ''}\n`;
+                                  if (item.notes) info += `Notes: ${item.notes}\n`;
+                                  
+                                  // Action Items
+                                  const allActions = item.actionItems || [];
+                                  if (allActions.length > 0) {
+                                    info += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n✅ ACTION ITEMS (${allActions.filter(a => !a.completed).length} pending):\n\n`;
+                                    allActions.forEach(action => {
+                                      const checkbox = action.completed ? '[✓]' : '[ ]';
+                                      const dueDateStr = action.dueDate ? ` - Due: ${action.dueDate}` : '';
+                                      const status = action.completed ? ' (✓ Completed)' : '';
+                                      info += `${checkbox} ${action.description}${dueDateStr}${status}\n`;
+                                    });
+                                  }
+                                  
+                                  // Interactions
+                                  const interactions = item.interactions || [];
+                                  if (interactions.length > 0) {
+                                    info += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n📞 INTERACTION HISTORY (${interactions.length}):\n\n`;
+                                    interactions.forEach((int, idx) => {
+                                      const icon = int.type === 'text' ? '📱' : int.type === 'phone' ? '📞' : int.type === 'email' ? '✉️' : int.type === 'video' ? '📹' : '👤';
+                                      info += `${idx + 1}. ${icon} ${int.type.toUpperCase()} (${int.date})\n`;
+                                      if (int.meetingLink) info += `   🔗 ${int.meetingLink}\n`;
+                                      info += `   ${int.notes || 'No notes'}\n`;
+                                      if (int.actionItems && int.actionItems.length > 0) {
+                                        info += `   → Actions:\n`;
+                                        int.actionItems.forEach(a => {
+                                          const checkbox = a.completed ? '[✓]' : '[ ]';
+                                          info += `     ${checkbox} ${a.description}\n`;
+                                        });
+                                      }
+                                      info += `\n`;
+                                    });
+                                  }
+                                  
+                                  alert(info);
+                                }}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="View All Info"
+                              >
+                                📋
+                              </button>
                               <button
                                 onClick={() => setEditingId(item.id)}
                                 className="text-blue-600 hover:text-blue-800"
