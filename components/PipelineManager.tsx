@@ -596,15 +596,14 @@ export default function PipelineManager() {
           alert('Data imported successfully! Refresh the page to see changes.');
           window.location.reload();
         }
-      } catch (error: any) {
-        alert(`Error importing file: ${error.message}\n\nPlease check the console for details.`);
-        console.error('Import error:', error);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        alert(`Error importing file: ${errorMessage}\n\nPlease ensure the file format is correct.`);
       }
     };
 
     reader.onerror = () => {
       alert('Error reading file. Please try again.');
-      console.error('FileReader error');
     };
 
     reader.readAsText(file);

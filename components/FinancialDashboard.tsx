@@ -252,9 +252,6 @@ export default function FinancialDashboard() {
   const parseIncomeCategories = (text: string): Array<{ name: string; amount: number }> => {
     const categories: Array<{ name: string; amount: number }> = [];
     
-    console.log('=== PARSING INCOME ===');
-    console.log('Text length:', text.length);
-    console.log('First 1000 chars:', text.substring(0, 1000));
     
     let totalIncomeFound = false;
     let totalIncomeAmount = 0;
@@ -335,7 +332,6 @@ export default function FinancialDashboard() {
             );
             
             if (existingIndex < 0) {
-              console.log('✓ Found income category:', displayName, '→ Amount:', amount);
               categories.push({
                 name: displayName,
                 amount: amount,
@@ -370,7 +366,6 @@ export default function FinancialDashboard() {
           );
           
           if (existingIndex < 0) {
-            console.log('✓ Found income category (simple):', displayName, '→ Amount:', amount);
             categories.push({
               name: displayName,
               amount: amount,
@@ -383,7 +378,6 @@ export default function FinancialDashboard() {
     // STEP 3: If we found Total Income, add it as a category for display
     // The parseFinancialReport will use this value as the total (not sum categories)
     if (totalIncomeFound && totalIncomeAmount > 0) {
-      console.log('✓ Using Total Income from line:', totalIncomeAmount);
       // Add Total Income as a category - parseFinancialReport will use it as the total
       categories.push({
         name: 'Total Income',
@@ -392,23 +386,19 @@ export default function FinancialDashboard() {
     } else if (categories.length > 0) {
       // Sum categories and add as Total Income
       const calculatedTotal = categories.reduce((sum, cat) => sum + cat.amount, 0);
-      console.log('✓ Calculated Total Income from categories:', calculatedTotal);
       categories.push({
         name: 'Total Income',
         amount: calculatedTotal,
       });
     } else {
-      console.warn('✗ Could not find Total Income or income categories');
     }
     
-    console.log('Final income categories:', categories);
     return categories;
   };
 
   const parseExpenseCategories = (text: string): Array<{ name: string; amount: number }> => {
     const categories: Array<{ name: string; amount: number }> = [];
     
-    console.log('=== PARSING EXPENSES ===');
     
     // FIRST: Look for "Total Expenses" in continuous text (like income)
     // Format: "Total Expenses   60,675.29" (can be on same line as other content)
@@ -433,7 +423,6 @@ export default function FinancialDashboard() {
           if (amount >= 1000 && !isAccountNumber) {
             totalExpenseAmount = amount;
             totalExpenseFound = true;
-            console.log('✓ Found Total Expenses:', amount);
             break;
           }
         }
@@ -445,12 +434,10 @@ export default function FinancialDashboard() {
         name: 'Total Expenses',
         amount: totalExpenseAmount,
       });
-      console.log('Final expense categories:', categories);
       return categories;
     }
     
     if (!totalExpenseFound) {
-      console.warn('⚠ Could not find "Total Expenses" in PDF text');
     }
     
     // FALLBACK: If no "Total Expenses" found, try to parse individual expense categories
@@ -517,7 +504,6 @@ export default function FinancialDashboard() {
       }
     }
     
-    console.log('=== PARSING RECEIVABLES ===');
     
     // Parse A/R Aging Detail format from continuous text
     // Look for invoice patterns: Date Invoice Num Customer Due Date Amount
@@ -574,13 +560,11 @@ export default function FinancialDashboard() {
           status,
         });
         
-        console.log('✓ Found receivable:', cleanCustomer, '→ Amount:', amount, 'Days:', daysOutstanding);
       }
     }
     
     // Also try a simpler pattern if the above didn't work
     if (receivables.length === 0) {
-      console.log('Trying alternative receivables pattern...');
       const altPattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\s+invoice\s+\d+\s+([A-Za-z\s,\.:]+?)\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\s+([\d,]+\.?\d{2})/gi;
       let altMatch;
       while ((altMatch = altPattern.exec(text)) !== null) {
@@ -616,7 +600,6 @@ export default function FinancialDashboard() {
       }
     }
     
-    console.log('Total receivables found:', receivables.length);
     return receivables;
   };
 
