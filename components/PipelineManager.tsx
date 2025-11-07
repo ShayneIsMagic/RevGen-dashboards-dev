@@ -608,6 +608,23 @@ export default function PipelineManager() {
     reader.readAsText(file);
   };
 
+  // Helper: Calculate business days between two dates
+  const getBusinessDaysDiff = (date1: Date, date2: Date): number => {
+    let count = 0;
+    const current = new Date(date1);
+    const end = new Date(date2);
+    
+    while (current < end) {
+      const dayOfWeek = current.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday or Saturday
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return count;
+  };
+
   // Get current pipeline based on view
   const getCurrentPipeline = () => {
     switch (currentView) {
@@ -623,7 +640,21 @@ export default function PipelineManager() {
           createdAt: lead.createdAt,
         })) as PipelineItem[];
       case 'sales':
-        return salesPipeline;
+        // Sort by nextStepDate (nearest to today first, nulls last)
+        return [...salesPipeline].sort((a, b) => {
+          if (!a.nextStepDate && !b.nextStepDate) return 0;
+          if (!a.nextStepDate) return 1;
+          if (!b.nextStepDate) return -1;
+          
+          const dateA = new Date(a.nextStepDate).getTime();
+          const dateB = new Date(b.nextStepDate).getTime();
+          const today = new Date().getTime();
+          
+          const diffA = Math.abs(dateA - today);
+          const diffB = Math.abs(dateB - today);
+          
+          return diffA - diffB;
+        });
       case 'active':
         return activeClients;
       case 'lost':
@@ -1403,8 +1434,22 @@ export default function PipelineManager() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {currentPipeline.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
+                  {currentPipeline.map((item) => {
+                    // Check if past due by >3 business days (Sales Pipeline only)
+                    const isPastDue = currentView === 'sales' && item.nextStepDate && (() => {
+                      const dueDate = new Date(item.nextStepDate);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      dueDate.setHours(0, 0, 0, 0);
+                      
+                      if (dueDate >= today) return false; // Not past due
+                      
+                      const businessDaysPast = getBusinessDaysDiff(dueDate, today);
+                      return businessDaysPast > 3;
+                    })();
+                    
+                    return (
+                    <tr key={item.id} className={`hover:bg-gray-50 ${isPastDue ? 'bg-red-50 border-l-4 border-l-red-500' : ''}`}>
                       <td className="px-4 py-3">
                         {editingId === item.id ? (
                           <input
@@ -1643,7 +1688,8 @@ export default function PipelineManager() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
               {currentPipeline.length === 0 && (
