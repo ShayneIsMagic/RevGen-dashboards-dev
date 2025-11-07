@@ -1,0 +1,11 @@
+# Files to exclude from test coverage
+node_modules/
+.next/
+out/
+coverage/
+*.config.js
+*.config.ts
+jest.setup.js
+playwright.config.ts
+e2e/
+
