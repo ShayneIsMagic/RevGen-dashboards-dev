@@ -118,12 +118,32 @@ export default function PipelineManager() {
       return;
     }
 
+    const startingValue = parseFloat(newGoal.startingValue) || 0;
+    const currentValue = parseFloat(newGoal.currentValue) || startingValue;
+    const targetValue = parseFloat(newGoal.targetValue);
+
+    // Validation
+    if (targetValue <= startingValue) {
+      alert('Target Value must be greater than Starting Value');
+      return;
+    }
+
+    if (currentValue < startingValue) {
+      alert('Current Value cannot be less than Starting Value');
+      return;
+    }
+
+    if (currentValue > targetValue) {
+      alert('Current Value cannot be greater than Target Value');
+      return;
+    }
+
     const goal: Goal = {
       id: Date.now(),
       ...newGoal,
-      startingValue: parseFloat(newGoal.startingValue) || 0,
-      currentValue: parseFloat(newGoal.currentValue) || parseFloat(newGoal.startingValue) || 0,
-      targetValue: parseFloat(newGoal.targetValue),
+      startingValue,
+      currentValue,
+      targetValue,
       createdAt: new Date().toISOString(),
     };
 
@@ -702,24 +722,34 @@ export default function PipelineManager() {
                 </select>
                 <input
                   type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="Starting Value"
                   value={newGoal.startingValue}
                   onChange={(e) => setNewGoal({ ...newGoal, startingValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
+                  title="Starting value (must be 0 or positive)"
                 />
                 <input
                   type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="Current Value"
                   value={newGoal.currentValue}
                   onChange={(e) => setNewGoal({ ...newGoal, currentValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
+                  title="Current value (must be 0 or positive)"
                 />
                 <input
                   type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="Target Value"
                   value={newGoal.targetValue}
                   onChange={(e) => setNewGoal({ ...newGoal, targetValue: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
+                  title="Target value (must be greater than starting)"
+                  required
                 />
                 <input
                   type="date"
