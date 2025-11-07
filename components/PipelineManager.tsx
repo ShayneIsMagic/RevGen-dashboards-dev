@@ -29,7 +29,7 @@ const salesStageInitials: Record<string, string> = {
 };
 
 const paymentTypes: Array<'MRR' | 'Project' | 'Hybrid'> = ['MRR', 'Project', 'Hybrid'];
-const interactionTypes: Array<'text' | 'phone' | 'email' | 'in-person'> = ['text', 'phone', 'email', 'in-person'];
+const interactionTypes: Array<'text' | 'phone' | 'email' | 'in-person' | 'video'> = ['text', 'phone', 'email', 'in-person', 'video'];
 const leadSources = [
   'Website',
   'Referral',
@@ -82,7 +82,9 @@ export default function PipelineManager() {
     company: '',
     source: 'Website',
     projectedOpportunity: '',
-    interactions: [] as Array<{ type: 'text' | 'phone' | 'email' | 'in-person'; date: string; notes: string }>,
+    defaultMeetingLink: '',
+    actionItems: [] as Array<{ id: number; description: string; dueDate?: string; completed: boolean; }>,
+    interactions: [] as Array<{ type: 'text' | 'phone' | 'email' | 'in-person' | 'video'; date: string; notes: string; meetingLink?: string; actionItems?: Array<{ id: number; description: string; dueDate?: string; completed: boolean; }> }>,
     notes: {
       solution: '',
       budget: '',
@@ -216,6 +218,8 @@ export default function PipelineManager() {
       company: '',
       source: 'Website',
       projectedOpportunity: '',
+      defaultMeetingLink: '',
+      actionItems: [],
       interactions: [],
       notes: {
         solution: '',
@@ -1101,6 +1105,16 @@ export default function PipelineManager() {
                     rows={2}
                   />
                 </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-gray-900">Meeting Link (Optional)</label>
+                  <input
+                    type="url"
+                    placeholder="Zoom/Google Meet link (e.g., https://zoom.us/j/123456789)"
+                    value={newLead.defaultMeetingLink || ''}
+                    onChange={(e) => setNewLead({ ...newLead, defaultMeetingLink: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500"
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
                 <button
@@ -1268,46 +1282,72 @@ export default function PipelineManager() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-1 items-center">
-                          <span className="text-sm font-semibold text-gray-700">{lead.interactions.length}</span>
-                          {lead.interactions.length > 0 && (
-                            <button
-                              onClick={() => {
-                                const interactionList = lead.interactions
-                                  .map((int, idx) => {
-                                    const icon = int.type === 'text' ? '📱' : int.type === 'phone' ? '📞' : int.type === 'email' ? '✉️' : '👤';
-                                    return `${idx + 1}. ${icon} ${int.type.toUpperCase()} (${int.date})\n   ${int.notes || 'No notes'}`;
-                                  })
-                                  .join('\n\n');
-                                alert(`Interactions with ${lead.prospect}:\n\n${interactionList}`);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 text-xs underline"
-                              title="View all interactions"
-                            >
-                              view
-                            </button>
-                          )}
-                          <button
-                            onClick={() => addInteraction(lead.id)}
-                            className="text-green-600 hover:text-green-800 text-sm font-bold"
-                            title="Add Interaction"
-                          >
-                            +
-                          </button>
-                        </div>
+                        <span className="text-sm font-semibold text-gray-700">{lead.interactions.length}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
-                              const showNotes = prompt(
-                                `Notes:\n\nSolution: ${lead.notes.solution || 'N/A'}\nBudget: ${lead.notes.budget || 'N/A'}\nPeople: ${lead.notes.people || 'N/A'}\nTiming: ${lead.notes.timing || 'N/A'}\n\nGeneral: ${lead.notes.general || 'N/A'}`
-                              );
+                              // Combined view: Notes + Meetings + Action Items + Interactions
+                              let info = `━━━━━━━━━━━━━━━━━━━━━━━━\n📋 LEAD: ${lead.prospect}${lead.company ? ` (${lead.company})` : ''}\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                              
+                              // Meeting Link
+                              if (lead.defaultMeetingLink) {
+                                info += `🔗 DEFAULT MEETING: ${lead.defaultMeetingLink}\n\n`;
+                              }
+                              
+                              // Lead Notes
+                              info += `💡 LEAD NOTES:\n`;
+                              info += `Solution: ${lead.notes.solution || 'N/A'}\n`;
+                              info += `Budget: ${lead.notes.budget || 'N/A'}\n`;
+                              info += `People: ${lead.notes.people || 'N/A'}\n`;
+                              info += `Timing: ${lead.notes.timing || 'N/A'}\n`;
+                              if (lead.notes.general) info += `General: ${lead.notes.general}\n`;
+                              
+                              // Action Items
+                              const allActions = lead.actionItems || [];
+                              if (allActions.length > 0) {
+                                info += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n✅ ACTION ITEMS (${allActions.filter(a => !a.completed).length} pending):\n\n`;
+                                allActions.forEach(action => {
+                                  const checkbox = action.completed ? '[✓]' : '[ ]';
+                                  const dueDateStr = action.dueDate ? ` - Due: ${action.dueDate}` : '';
+                                  const status = action.completed ? ' (✓ Completed)' : '';
+                                  info += `${checkbox} ${action.description}${dueDateStr}${status}\n`;
+                                });
+                              }
+                              
+                              // Interactions
+                              if (lead.interactions.length > 0) {
+                                info += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n📞 INTERACTION HISTORY (${lead.interactions.length}):\n\n`;
+                                lead.interactions.forEach((int, idx) => {
+                                  const icon = int.type === 'text' ? '📱' : int.type === 'phone' ? '📞' : int.type === 'email' ? '✉️' : int.type === 'video' ? '📹' : '👤';
+                                  info += `${idx + 1}. ${icon} ${int.type.toUpperCase()} (${int.date})\n`;
+                                  if (int.meetingLink) info += `   🔗 ${int.meetingLink}\n`;
+                                  info += `   ${int.notes || 'No notes'}\n`;
+                                  if (int.actionItems && int.actionItems.length > 0) {
+                                    info += `   → Actions:\n`;
+                                    int.actionItems.forEach(a => {
+                                      const checkbox = a.completed ? '[✓]' : '[ ]';
+                                      info += `     ${checkbox} ${a.description}\n`;
+                                    });
+                                  }
+                                  info += `\n`;
+                                });
+                              }
+                              
+                              alert(info);
                             }}
                             className="text-blue-600 hover:text-blue-800"
-                            title="View Notes"
+                            title="View All Info"
                           >
-                            📝
+                            📋
+                          </button>
+                          <button
+                            onClick={() => addInteraction(lead.id)}
+                            className="text-green-600 hover:text-green-800"
+                            title="Add Interaction"
+                          >
+                            +
                           </button>
                           <button
                             onClick={() => deleteLead(lead.id)}

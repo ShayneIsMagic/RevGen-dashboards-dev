@@ -10,6 +10,15 @@ export interface Goal {
   createdAt: string;
 }
 
+export interface ActionItem {
+  id: number;
+  description: string;
+  dueDate?: string;
+  completed: boolean;
+  completedDate?: string;
+  assignedTo?: string;
+}
+
 export interface PipelineItem {
   id: number;
   prospect: string;
@@ -25,6 +34,16 @@ export interface PipelineItem {
   startDate?: string;
   paymentType?: 'MRR' | 'Project' | 'Hybrid'; // MRR, Project (one-time), or Hybrid
   mrrAmount?: number; // If MRR or Hybrid, the monthly amount
+  // Meeting & Action Items
+  defaultMeetingLink?: string; // Zoom/Google Meet link for this deal/client
+  actionItems?: ActionItem[]; // General action items for this deal/client
+  interactions?: Array<{
+    type: 'text' | 'phone' | 'email' | 'in-person' | 'video';
+    date: string;
+    notes: string;
+    meetingLink?: string; // Override default meeting link for this interaction
+    actionItems?: ActionItem[]; // Action items from this specific interaction
+  }>;
 }
 
 export interface LeadItem {
@@ -33,10 +52,14 @@ export interface LeadItem {
   company?: string;
   source: string; // Where the lead came from
   projectedOpportunity: number;
+  defaultMeetingLink?: string; // Zoom/Google Meet link for this lead
+  actionItems?: ActionItem[]; // General action items for this lead
   interactions: Array<{
-    type: 'text' | 'phone' | 'email' | 'in-person';
+    type: 'text' | 'phone' | 'email' | 'in-person' | 'video';
     date: string;
     notes: string;
+    meetingLink?: string; // Override default meeting link for this interaction
+    actionItems?: ActionItem[]; // Action items from this specific interaction
   }>;
   notes: {
     solution?: string;
