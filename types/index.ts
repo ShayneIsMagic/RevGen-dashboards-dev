@@ -75,6 +75,61 @@ export interface LeadItem {
 
 export type PipelineType = 'leads' | 'sales' | 'active' | 'lost' | 'former';
 
+export interface GovContractItem {
+  id: number;
+  opportunityNumber: string; // e.g., "#16"
+  title: string;
+  agency: string; // Department/Agency name
+  opportunityType: 'Federal' | 'State' | 'Local' | 'Emergency';
+  portalUrl?: string; // Portal/source URL
+  solicitationNumber?: string; // Solicitation/RFP number
+  status: 'new' | 'registered' | 'reviewing' | 'preparing' | 'submitted' | 'awarded' | 'declined' | 'lost';
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  capabilityMatch: number; // Percentage 0-100
+  estimatedValue: number; // Contract value
+  estimatedValueMax?: number; // Max contract value (range)
+  dueDate?: string; // Proposal due date
+  releaseDate?: string; // When opportunity was released
+  prebidDate?: string; // Pre-bid conference date
+  prebidLocation?: string; // Virtual link or physical location
+  qaDeadline?: string; // Questions deadline
+  naicsCode?: string; // NAICS code
+  setState?: string; // For state contracts
+  actionItems?: Array<{
+    id: number;
+    description: string;
+    dueDate?: string;
+    completed: boolean;
+    completedDate?: string;
+  }>;
+  registrationRequired: boolean;
+  registrationStatus?: 'not_started' | 'in_progress' | 'completed';
+  portalRegistrationUrl?: string;
+  documents?: Array<{
+    id: number;
+    name: string;
+    url?: string;
+    downloadedDate?: string;
+  }>;
+  teamingRequired: boolean;
+  teamingPartners?: string[]; // List of potential partners
+  technicalRequirements?: string; // Key technical requirements
+  certifications?: string[]; // Required certifications
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+  submittedDate?: string;
+  awardDate?: string;
+  interactions?: Array<{
+    type: 'email' | 'phone' | 'meeting' | 'site_visit' | 'portal';
+    date: string;
+    notes: string;
+    contactPerson?: string;
+  }>;
+}
+
+export type GovContractType = 'all' | 'active' | 'submitted' | 'awarded' | 'declined';
+
 export interface GoalMetrics {
   progress: string;
   remaining: number;

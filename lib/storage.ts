@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import type { Goal, PipelineItem, LeadItem } from '@/types';
+import type { Goal, PipelineItem, LeadItem, GovContractItem } from '@/types';
 
 // Configure LocalForage
 localforage.config({
@@ -73,6 +73,14 @@ export const storage = {
   async saveFinancialData(period: 'month' | 'quarter' | 'year', date: string, data: any): Promise<void> {
     const key = `financial_${period}_${date}`;
     await localforage.setItem(key, data);
+  },
+
+  // Government Contracts
+  async getGovContracts(): Promise<GovContractItem[]> {
+    return (await localforage.getItem('govContracts')) || [];
+  },
+  async saveGovContracts(items: GovContractItem[]): Promise<void> {
+    await localforage.setItem('govContracts', items);
   },
 };
 

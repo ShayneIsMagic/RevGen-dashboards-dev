@@ -1,6 +1,6 @@
 ## Zero Barriers Pipeline Dashboard
 
-An internal dashboard for managing the Zero Barriers sales pipeline and financial health. The product bundles two views—Pipeline Manager and Financial Dashboard—into a single Next.js 16 application optimized for local-first workflows.
+An internal dashboard for managing the Zero Barriers sales pipeline and financial health. The product bundles three views—Pipeline Manager, Government Contracts Tracker, and Financial Dashboard—into a single Next.js 16 application optimized for local-first workflows.
 
 ### Highlights
 
@@ -8,6 +8,7 @@ An internal dashboard for managing the Zero Barriers sales pipeline and financia
 - Goal tracking with run-rate analytics and pipeline health alerts
 - Lead intake workflow including interaction history and status tracking
 - Deal progression, conversion to active clients, and churn management
+- **Government contract opportunity tracking** with priority alerts and deadline management
 - Financial report parsing from PDF exports with receivables aging
 - Markdown/JSON export utilities for snapshot reporting
 
@@ -19,15 +20,19 @@ An internal dashboard for managing the Zero Barriers sales pipeline and financia
 pipeline-manager-nextjs/
 ├── app/
 │   ├── page.tsx             # Pipeline Manager shell
+│   ├── contracts/page.tsx   # Government Contracts Tracker shell
 │   └── financial/page.tsx   # Financial Dashboard shell
 ├── components/              # UI modules shared across views
+│   ├── PipelineManager.tsx
+│   ├── GovContractManager.tsx
+│   └── FinancialDashboard.tsx
 ├── hooks/                   # LocalForage integration
 ├── lib/                     # Storage helpers, PDF parsing, utilities
-├── docs/                    # View-specific product documentation
+├── types/                   # TypeScript type definitions
 └── ...
 ```
 
-Refer to `docs/PipelineManager.md` and `docs/FinancialDashboard.md` (added in this branch) for product-level detail.
+Refer to `GOV-CONTRACTS-GUIDE.md` for Government Contracts documentation.
 
 ---
 
@@ -60,12 +65,21 @@ The production build remains fully client-side; no backend services are required
 
 ## Feature Overview
 
-| View               | Primary Features                                                                                                   |
-|--------------------|---------------------------------------------------------------------------------------------------------------------|
-| Pipeline Manager   | Goal creation & analytics, lead intake, sales pipeline, active clients, lost deals, former clients, data export     |
-| Financial Dashboard| Period selector (month/quarter/year), PDF import, income & expense breakdowns, gross profit, receivables aging      |
+| View                        | Primary Features                                                                                                      |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| Pipeline Manager            | Goal creation & analytics, lead intake, sales pipeline, active clients, lost deals, former clients, data export       |
+| Government Contracts Tracker| Federal/State/Local/Emergency opportunity tracking, priority alerts, deadline management, action items, status workflow|
+| Financial Dashboard         | Period selector (month/quarter/year), PDF import, income & expense breakdowns, gross profit, receivables aging        |
 
-Both views offer import/export tooling and rely on browser storage so teams can test scenarios without provisioning infrastructure.
+All three views offer import/export tooling and rely on browser storage so teams can test scenarios without provisioning infrastructure.
+
+### Accessing the Dashboards
+
+- **Pipeline Manager**: `http://localhost:3000/` (main page)
+- **Government Contracts**: `http://localhost:3000/contracts`
+- **Financial Dashboard**: `http://localhost:3000/financial`
+
+All dashboards have navigation links to switch between views seamlessly.
 
 ---
 
@@ -80,13 +94,15 @@ Refer to `docs/TESTING-GUIDE.md` if you need extra setup notes.
 
 ## Additional Documentation
 
+- `GOV-CONTRACTS-GUIDE.md` - Complete guide for Government Contracts Tracker
+- `GOALS-CALCULATION-EXPLAINED.md` - Detailed explanation of goal tracking and calculations
 - `docs/PipelineManager.md`
 - `docs/FinancialDashboard.md`
 - `docs/ACCOUNTS-RECEIVABLE-GOALS-GUIDE.md`
 - `docs/FINANCIAL-DASHBOARD-GUIDE.md`
 - `docs/MIGRATION-COMPLETE.md`
 
-These files capture user workflows, data contracts, and migration context brought in with the goals branch.
+These files capture user workflows, data contracts, and migration context.
 
 ---
 

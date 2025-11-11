@@ -678,7 +678,8 @@ export default function PipelineManager() {
             >
               <FileDown size={16} /> Financial Dashboard
             </Link>
-            <div className="flex gap-2">
+          </div>
+          <div className="flex gap-2">
               <button
                 onClick={exportToJSON}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { storage } from '@/lib/storage';
-import type { Goal, PipelineItem, LeadItem } from '@/types';
+import type { Goal, PipelineItem, LeadItem, GovContractItem } from '@/types';
 
 export function usePipelineData() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -81,6 +81,34 @@ export function usePipelineData() {
     setFormerClients,
     loading,
     refresh: loadAllData,
+  };
+}
+
+export function useGovContracts() {
+  const [contracts, setContracts] = useState<GovContractItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const savedContracts = await storage.getGovContracts();
+      setContracts(savedContracts || []);
+    } catch (error) {
+      console.error('Error loading government contracts:', error);
+      setContracts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    contracts,
+    setContracts,
+    loading,
+    refresh: loadData,
   };
 }
 
