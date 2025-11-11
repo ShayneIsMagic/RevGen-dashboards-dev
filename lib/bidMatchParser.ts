@@ -177,8 +177,10 @@ function parseDueDate(dueDate?: string): string | undefined {
     return undefined;
   }
   
+  const upper = dueDate.toUpperCase();
+  
   // If it contains "URGENT" or "TODAY", suggest 7 days from now
-  if (dueDate.toUpperCase().includes('URGENT') || dueDate.toUpperCase().includes('TODAY')) {
+  if (upper.includes('URGENT') || upper.includes('TODAY')) {
     const date = new Date();
     date.setDate(date.getDate() + 7);
     return date.toISOString().split('T')[0];
@@ -194,6 +196,7 @@ function parseDueDate(dueDate?: string): string | undefined {
     // Invalid date
   }
   
+  // If we can't parse it, return undefined (no due date)
   return undefined;
 }
 
@@ -272,35 +275,70 @@ function convertBidMatchOpportunity(bidMatch: BidMatchOpportunity, index: number
 }
 
 /**
- * Normalize opportunity keys to handle both formats:
- * - Old format: opp_number, due_date, etc.
- * - New format: "Opp #", "Due Date", etc.
+ * Normalize opportunity keys to handle multiple formats:
+ * - Format 1: opp_number, match (string), value, due_date
+ * - Format 2: "Opp #", "Match", "Value", "Due Date" (title case with spaces)
+ * - Format 3: opp_number, match_score (number), estimated_value
  */
 function normalizeOpportunity(opp: any): BidMatchOpportunity {
-  // If already in old format, return as-is
-  if (opp.opp_number !== undefined) {
-    return opp as BidMatchOpportunity;
+  // Handle match field - could be string or number
+  let matchField = '';
+  if (opp.match) {
+    matchField = opp.match;
+  } else if (opp['Match']) {
+    matchField = opp['Match'];
+  } else if (opp.match_score !== undefined) {
+    // Convert match_score number to match string format
+    matchField = `${opp.match_score}%`;
+    if (opp.matched_capabilities && Array.isArray(opp.matched_capabilities) && opp.matched_capabilities.length > 0) {
+      matchField += ` - ${opp.matched_capabilities[0]}`;
+    }
   }
   
-  // Convert new format to old format
+  // Handle value field
+  const valueField = opp.value || opp['Value'] || opp.estimated_value || opp.actual_value || '';
+  
+  // Handle due date field
+  const dueDateField = opp.due_date || opp['Due Date'];
+  
+  // Handle actions field
+  let actionsField: string[] = [];
+  if (typeof opp.actions === 'string') {
+    actionsField = [opp.actions];
+  } else if (typeof opp['Actions'] === 'string') {
+    actionsField = [opp['Actions']];
+  } else if (Array.isArray(opp.actions)) {
+    actionsField = opp.actions;
+  }
+  
+  // Build capability alignment if we have matched_capabilities
+  let capabilityAlignment = opp.capability_alignment;
+  if (!capabilityAlignment && opp.matched_capabilities && Array.isArray(opp.matched_capabilities)) {
+    capabilityAlignment = {
+      primary: opp.matched_capabilities[0] || '',
+      secondary: opp.matched_capabilities.slice(1),
+      confidence: `${opp.match_score || 0}%`
+    };
+  }
+  
   return {
-    opp_number: opp['Opp #'] || opp.opp_number || '',
-    title: opp['Title'] || opp.title || '',
-    agency: opp['Agency'] || opp.agency || '',
-    type: opp['Type'] || opp.type || '',
-    priority: opp['Priority'] || opp.priority || '',
-    match: opp['Match'] || opp.match || '',
-    value: opp['Value'] || opp.value || '',
-    due_date: opp['Due Date'] || opp.due_date,
-    status: opp['Status'] || opp.status || '',
-    actions: opp['Actions'] ? [opp['Actions']] : (opp.actions || []),
-    portal_url: opp['Portal URL'] || opp.portal_url,
-    solicitation_id: opp['Solicitation #'] || opp.solicitation_id,
-    direct_link: opp['Direct Link'] || opp.direct_link,
-    capability_alignment: opp.capability_alignment,
+    opp_number: opp.opp_number || opp['Opp #'] || '',
+    title: opp.title || opp['Title'] || '',
+    agency: opp.agency || opp['Agency'] || '',
+    type: opp.type || opp['Type'] || '',
+    priority: opp.priority || opp['Priority'] || '',
+    match: matchField,
+    value: valueField,
+    due_date: dueDateField,
+    status: opp.status || opp['Status'] || '',
+    actions: actionsField,
+    portal_url: opp.portal_url || opp['Portal URL'],
+    solicitation_id: opp.solicitation_id || opp['Solicitation #'],
+    direct_link: opp.direct_link || opp['Direct Link'],
+    capability_alignment: capabilityAlignment,
     geographic: opp.geographic,
     requirements: opp.requirements,
-    special_notes: opp.special_notes || opp['Special Notes'],
+    special_notes: opp.special_notes || opp['Special Notes'] || opp.notes,
     contact: opp.contact,
   };
 }

@@ -260,16 +260,36 @@ export default function GovContractManager() {
           const oppCount = data.opportunities?.length || 0;
           const confirmMsg = `🎯 BidMatch JSON Detected!\n\n` +
             `Found ${oppCount} opportunities to import.\n\n` +
-            `This will ADD these opportunities to your existing data.\n\n` +
+            `This will ADD these opportunities to your existing data.\n` +
+            `Duplicates (same Opp # AND Title) will be skipped.\n\n` +
             `Continue?`;
           
           if (confirm(confirmMsg)) {
             try {
-              const newContracts = parseBidMatchJSON(data);
+              const parsedContracts = parseBidMatchJSON(data);
+              
+              // Filter out duplicates: check both opportunityNumber AND title
+              const newContracts = parsedContracts.filter(newContract => {
+                return !contracts.some(existing => 
+                  existing.opportunityNumber === newContract.opportunityNumber &&
+                  existing.title === newContract.title
+                );
+              });
+              
+              const duplicateCount = parsedContracts.length - newContracts.length;
               const updated = [...contracts, ...newContracts];
+              
               setContracts(updated);
               await storage.saveGovContracts(updated);
-              alert(`✅ Success!\n\n${newContracts.length} opportunities imported from BidMatch.\n\nTotal opportunities: ${updated.length}`);
+              
+              let message = `✅ Import Complete!\n\n`;
+              message += `• New opportunities imported: ${newContracts.length}\n`;
+              if (duplicateCount > 0) {
+                message += `• Duplicates skipped: ${duplicateCount}\n`;
+              }
+              message += `• Total opportunities: ${updated.length}`;
+              
+              alert(message);
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
               alert(`Error parsing BidMatch data: ${errorMessage}`);
