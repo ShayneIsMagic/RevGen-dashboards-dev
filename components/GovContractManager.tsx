@@ -6,7 +6,7 @@ import { useGovContracts } from '@/hooks/useLocalForage';
 import { storage } from '@/lib/storage';
 import { parseBidMatchJSON, isBidMatchFormat } from '@/lib/bidMatchParser';
 import type { GovContractItem, GovContractType } from '@/types';
-import { Download, Plus, Edit2, Save, X, AlertCircle, Upload, FileDown, Trash, CheckSquare } from './icons';
+import { Download, Plus, Edit2, Save, X, AlertCircle, Upload, FileDown, Trash } from './icons';
 
 const opportunityTypes: Array<'Federal' | 'State' | 'Local' | 'Emergency'> = ['Federal', 'State', 'Local', 'Emergency'];
 const priorityLevels: Array<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'> = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
