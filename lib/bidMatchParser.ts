@@ -272,6 +272,40 @@ function convertBidMatchOpportunity(bidMatch: BidMatchOpportunity, index: number
 }
 
 /**
+ * Normalize opportunity keys to handle both formats:
+ * - Old format: opp_number, due_date, etc.
+ * - New format: "Opp #", "Due Date", etc.
+ */
+function normalizeOpportunity(opp: any): BidMatchOpportunity {
+  // If already in old format, return as-is
+  if (opp.opp_number !== undefined) {
+    return opp as BidMatchOpportunity;
+  }
+  
+  // Convert new format to old format
+  return {
+    opp_number: opp['Opp #'] || opp.opp_number || '',
+    title: opp['Title'] || opp.title || '',
+    agency: opp['Agency'] || opp.agency || '',
+    type: opp['Type'] || opp.type || '',
+    priority: opp['Priority'] || opp.priority || '',
+    match: opp['Match'] || opp.match || '',
+    value: opp['Value'] || opp.value || '',
+    due_date: opp['Due Date'] || opp.due_date,
+    status: opp['Status'] || opp.status || '',
+    actions: opp['Actions'] ? [opp['Actions']] : (opp.actions || []),
+    portal_url: opp['Portal URL'] || opp.portal_url,
+    solicitation_id: opp['Solicitation #'] || opp.solicitation_id,
+    direct_link: opp['Direct Link'] || opp.direct_link,
+    capability_alignment: opp.capability_alignment,
+    geographic: opp.geographic,
+    requirements: opp.requirements,
+    special_notes: opp.special_notes || opp['Special Notes'],
+    contact: opp.contact,
+  };
+}
+
+/**
  * Main parser function - converts BidMatch JSON to GovContractItem array
  */
 export function parseBidMatchJSON(data: BidMatchData): GovContractItem[] {
@@ -279,20 +313,29 @@ export function parseBidMatchJSON(data: BidMatchData): GovContractItem[] {
     throw new Error('Invalid BidMatch JSON: missing opportunities array');
   }
   
-  return data.opportunities.map((opp, index) => convertBidMatchOpportunity(opp, index));
+  // Normalize opportunities to handle both old and new formats
+  const normalizedOpportunities = data.opportunities.map(opp => normalizeOpportunity(opp));
+  
+  return normalizedOpportunities.map((opp, index) => convertBidMatchOpportunity(opp, index));
 }
 
 /**
  * Validate BidMatch JSON format
+ * Supports both old format (opp_number) and new format ("Opp #")
  */
 export function isBidMatchFormat(data: any): boolean {
-  return (
-    data &&
-    typeof data === 'object' &&
-    Array.isArray(data.opportunities) &&
-    data.opportunities.length > 0 &&
-    data.opportunities[0].opp_number !== undefined &&
-    data.opportunities[0].match !== undefined
-  );
+  if (!data || typeof data !== 'object' || !Array.isArray(data.opportunities) || data.opportunities.length === 0) {
+    return false;
+  }
+  
+  const firstOpp = data.opportunities[0];
+  
+  // Check for old format (lowercase with underscores)
+  const isOldFormat = firstOpp.opp_number !== undefined && firstOpp.match !== undefined;
+  
+  // Check for new format (title case with spaces)
+  const isNewFormat = firstOpp['Opp #'] !== undefined && firstOpp['Match'] !== undefined;
+  
+  return isOldFormat || isNewFormat;
 }
 
