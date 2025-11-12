@@ -19,6 +19,16 @@ export interface ActionItem {
   assignedTo?: string;
 }
 
+export interface StageHistoryEntry {
+  id: number;
+  stage: string;
+  date: string;
+  notes?: string;
+  nextStep?: string;
+  nextStepDate?: string;
+  actor?: string;
+}
+
 export interface PipelineItem {
   id: number;
   prospect: string; // Client name for Active Clients
@@ -45,6 +55,7 @@ export interface PipelineItem {
     meetingLink?: string; // Override default meeting link for this interaction
     actionItems?: ActionItem[]; // Action items from this specific interaction
   }>;
+  stageHistory?: StageHistoryEntry[];
 }
 
 export interface LeadItem {
@@ -71,6 +82,7 @@ export interface LeadItem {
   };
   status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost';
   createdAt: string;
+  stageHistory?: StageHistoryEntry[];
 }
 
 export type PipelineType = 'leads' | 'sales' | 'active' | 'lost' | 'former';

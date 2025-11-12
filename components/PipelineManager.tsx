@@ -5,10 +5,9 @@ import { useState } from 'react';
 import { usePipelineData } from '@/hooks/useLocalForage';
 import { storage } from '@/lib/storage';
 import { calculateGoalMetrics } from '@/lib/utils';
-import type { Goal, PipelineItem, PipelineType } from '@/types';
+import type { Goal, PipelineItem, PipelineType, StageHistoryEntry, LeadItem } from '@/types';
 import { Download, Plus, Edit2, Save, X, AlertCircle, Upload, FileDown, Trash } from './icons';
 import PDFImportDialog from './PDFImportDialog';
-import type { LeadItem } from '@/types';
 
 const salesStages = [
   'Mutual Discovery',
@@ -39,6 +38,60 @@ const leadSources = [
   'Partner',
   'Other',
 ];
+
+const createStageEntry = (
+  stage: string,
+  notes?: string,
+  nextStep?: string,
+  nextStepDate?: string,
+  date?: string
+): StageHistoryEntry => ({
+  id: Date.now() + Math.floor(Math.random() * 1000),
+  stage,
+  date: date || new Date().toISOString(),
+  notes,
+  nextStep,
+  nextStepDate,
+});
+
+const appendStageHistory = (
+  history: StageHistoryEntry[] | undefined,
+  entry: StageHistoryEntry
+): StageHistoryEntry[] => [...(history || []), entry];
+
+const getTimestamp = (value?: string) => {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? null : time;
+};
+
+const sortByNextStepDate = (items: PipelineItem[]) => {
+  return [...items].sort((a, b) => {
+    const timeA = getTimestamp(a.nextStepDate);
+    const timeB = getTimestamp(b.nextStepDate);
+
+    if (timeA === null && timeB === null) {
+      const createdA = getTimestamp(a.createdAt) ?? 0;
+      const createdB = getTimestamp(b.createdAt) ?? 0;
+      return createdA - createdB;
+    }
+    if (timeA === null) return 1;
+    if (timeB === null) return -1;
+
+    return timeA - timeB;
+  });
+};
+
+const sortByFieldDateDesc = (items: PipelineItem[], field: 'lostDate' | 'endDate') => {
+  return [...items].sort((a, b) => {
+    const timeA = getTimestamp(a[field]);
+    const timeB = getTimestamp(b[field]);
+    if (timeA === null && timeB === null) return 0;
+    if (timeA === null) return 1;
+    if (timeB === null) return -1;
+    return timeB - timeA;
+  });
+};
 
 export default function PipelineManager() {
   const {
@@ -177,6 +230,97 @@ export default function PipelineManager() {
     setShowGoalForm(false);
   };
 
+  const handleActiveLoss = async (item: PipelineItem) => {
+    await moveToLost(item, 'active');
+  };
+
+  const promoteLeadToSales = async (lead: LeadItem) => {
+    const proposedProject = prompt(
+      'Proposed project name for this sales opportunity:',
+      lead.notes.solution || `${lead.prospect} Project`
+    )?.trim();
+
+    if (!proposedProject) {
+      alert('Promotion cancelled. Proposed project name is required.');
+      return;
+    }
+
+    const amountInput = prompt(
+      'Estimated opportunity amount ($):',
+      lead.projectedOpportunity ? String(lead.projectedOpportunity) : ''
+    );
+    const amount = amountInput ? parseFloat(amountInput) : NaN;
+
+    if (Number.isNaN(amount)) {
+      alert('Promotion cancelled. Please provide a valid amount.');
+      return;
+    }
+
+    const defaultNextStep = 'Mutual Discovery Meeting';
+    const nextStep = prompt('Next step description:', defaultNextStep)?.trim() || defaultNextStep;
+
+    const defaultNextDate = new Date();
+    defaultNextDate.setDate(defaultNextDate.getDate() + 3);
+    const nextStepDate =
+      prompt(
+        'Next step date (YYYY-MM-DD):',
+        defaultNextDate.toISOString().split('T')[0]
+      ) || undefined;
+
+    const createdAt = new Date().toISOString();
+    const leadHistory = lead.stageHistory ? [...lead.stageHistory] : [];
+    const stageHistory = appendStageHistory(
+      leadHistory,
+      createStageEntry(
+        'Sales: Mutual Discovery',
+        'Promoted from Lead pipeline',
+        nextStep,
+        nextStepDate
+      )
+    );
+
+    const combinedNotes = [
+      lead.notes.solution ? `Solution: ${lead.notes.solution}` : undefined,
+      lead.notes.budget ? `Budget: ${lead.notes.budget}` : undefined,
+      lead.notes.people ? `People: ${lead.notes.people}` : undefined,
+      lead.notes.timing ? `Timing: ${lead.notes.timing}` : undefined,
+      lead.notes.general,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const pipelineItem: PipelineItem = {
+      id: Date.now(),
+      prospect: lead.prospect,
+      proposedProject,
+      amount,
+      salesStage: 'Mutual Discovery',
+      nextStep,
+      nextStepDate,
+      notes: combinedNotes || undefined,
+      createdAt,
+      defaultMeetingLink: lead.defaultMeetingLink,
+      actionItems: lead.actionItems ? lead.actionItems.map((item) => ({ ...item })) : undefined,
+      interactions: lead.interactions
+        ? lead.interactions.map((interaction) => ({
+            ...interaction,
+            actionItems: interaction.actionItems ? interaction.actionItems.map((item) => ({ ...item })) : undefined,
+          }))
+        : undefined,
+      stageHistory,
+    };
+
+    const updatedSales = [...salesPipeline, pipelineItem];
+    setSalesPipeline(updatedSales);
+    await storage.saveSalesPipeline(updatedSales);
+
+    const updatedLeads = leadsPipeline.filter((l) => l.id !== lead.id);
+    setLeadsPipeline(updatedLeads);
+    await storage.saveLeadsPipeline(updatedLeads);
+
+    alert('Lead promoted to Sales pipeline.');
+  };
+
   const updateGoal = async (goalId: number, field: keyof Goal, value: Goal[keyof Goal]) => {
     const updatedGoals = goals.map((goal) =>
       goal.id === goalId ? { ...goal, [field]: value } : goal
@@ -200,11 +344,15 @@ export default function PipelineManager() {
       return;
     }
 
+    const createdAt = new Date().toISOString();
+    const initialHistory = appendStageHistory(undefined, createStageEntry('Lead: New', 'Lead created', undefined, undefined, createdAt));
+
     const lead: LeadItem = {
       id: Date.now(),
       ...newLead,
       projectedOpportunity: parseFloat(newLead.projectedOpportunity) || 0,
-      createdAt: new Date().toISOString(),
+      createdAt,
+      stageHistory: initialHistory,
     };
 
     const updated = [...leadsPipeline, lead];
@@ -270,12 +418,25 @@ export default function PipelineManager() {
       return;
     }
 
+    const createdAt = new Date().toISOString();
+    const initialStageLabel =
+      currentView === 'sales'
+        ? `Sales: ${newItem.salesStage || 'Mutual Discovery'}`
+        : currentView === 'active'
+        ? 'Active: Onboarding'
+        : 'Pipeline';
+    const initialHistory = appendStageHistory(
+      undefined,
+      createStageEntry(initialStageLabel, 'Record created', newItem.nextStep || undefined, newItem.nextStepDate || undefined, createdAt)
+    );
+
     const item: PipelineItem = {
       id: Date.now(),
       ...newItem,
       amount: parseFloat(newItem.amount) || 0,
       mrrAmount: newItem.mrrAmount ? parseFloat(newItem.mrrAmount) : undefined,
-      createdAt: new Date().toISOString(),
+      createdAt,
+      stageHistory: initialHistory,
     };
 
     if (currentView === 'sales') {
@@ -307,8 +468,61 @@ export default function PipelineManager() {
   };
 
   const updateItem = async (itemId: number, field: keyof PipelineItem, value: PipelineItem[keyof PipelineItem]) => {
+    const stageLabelBase =
+      currentView === 'sales'
+        ? 'Sales'
+        : currentView === 'active'
+        ? 'Active'
+        : currentView === 'lost'
+        ? 'Lost'
+        : currentView === 'former'
+        ? 'Former'
+        : 'Pipeline';
+
     const updatePipeline = (pipeline: PipelineItem[]) => {
-      return pipeline.map((item) => (item.id === itemId ? { ...item, [field]: value } : item));
+      return pipeline.map((item) => {
+        if (item.id !== itemId) return item;
+
+        const updatedItem = { ...item, [field]: value };
+        let stageHistory = item.stageHistory ? [...item.stageHistory] : [];
+
+        if (field === 'salesStage' && currentView === 'sales' && value !== item.salesStage) {
+          stageHistory = appendStageHistory(
+            stageHistory,
+            createStageEntry(
+              `${stageLabelBase}: ${String(value)}`,
+              'Stage updated',
+              updatedItem.nextStep,
+              updatedItem.nextStepDate
+            )
+          );
+        } else if (field === 'nextStep' && (value as string)?.trim() !== (item.nextStep || '').trim()) {
+          stageHistory = appendStageHistory(
+            stageHistory,
+            createStageEntry(
+              `${stageLabelBase}: Next Step`,
+              `Next Step updated to "${String(value)}"`,
+              (value as string) || undefined,
+              updatedItem.nextStepDate
+            )
+          );
+        } else if (
+          field === 'nextStepDate' &&
+          (value as string | undefined) !== (item.nextStepDate || undefined)
+        ) {
+          stageHistory = appendStageHistory(
+            stageHistory,
+            createStageEntry(
+              `${stageLabelBase}: Next Step`,
+              `Next Step Date set to ${value ? String(value) : 'unspecified'}`,
+              updatedItem.nextStep,
+              (value as string) || undefined
+            )
+          );
+        }
+
+        return { ...updatedItem, stageHistory };
+      });
     };
 
     if (currentView === 'sales') {
@@ -330,30 +544,65 @@ export default function PipelineManager() {
     }
   };
 
-  const moveToLost = async (item: PipelineItem) => {
-    if (confirm(`Move "${item.prospect}" to Lost Deals?`)) {
-      const lostItem = { ...item, lostDate: new Date().toISOString() };
-      const updatedLost = [...lostDeals, lostItem];
-      setLostDeals(updatedLost);
-      await storage.saveLostDeals(updatedLost);
+  const moveToLost = async (item: PipelineItem, source: PipelineType = currentView) => {
+    const reason = prompt(`Reason for marking "${item.prospect}" as a lost deal?`)?.trim();
+    if (reason === undefined) {
+      return; // Cancelled
+    }
 
-      if (currentView === 'sales') {
-        const updated = salesPipeline.filter((i) => i.id !== item.id);
-        setSalesPipeline(updated);
-        await storage.saveSalesPipeline(updated);
-      }
+    const now = new Date().toISOString();
+    const historyBase = item.stageHistory ? [...item.stageHistory] : [];
+    const stageLabel =
+      source === 'sales'
+        ? 'Sales: Lost'
+        : source === 'active'
+        ? 'Active: Lost'
+        : 'Pipeline: Lost';
+    const stageHistory = appendStageHistory(
+      historyBase,
+      createStageEntry(stageLabel, reason || 'Marked as lost', item.nextStep, item.nextStepDate, now)
+    );
+    const notes = reason ? [item.notes, `Loss Reason: ${reason}`].filter(Boolean).join('\n') : item.notes;
+    const clonedActionItems = item.actionItems ? item.actionItems.map((ai) => ({ ...ai })) : undefined;
+    const clonedInteractions = item.interactions
+      ? item.interactions.map((interaction) => ({
+          ...interaction,
+          actionItems: interaction.actionItems ? interaction.actionItems.map((ai) => ({ ...ai })) : undefined,
+        }))
+      : undefined;
+
+    const lostItem: PipelineItem = {
+      ...item,
+      lostDate: now,
+      stageHistory,
+      notes,
+      actionItems: clonedActionItems,
+      interactions: clonedInteractions,
+    };
+
+    const updatedLost = [...lostDeals, lostItem];
+    setLostDeals(updatedLost);
+    await storage.saveLostDeals(updatedLost);
+
+    if (source === 'sales') {
+      const updated = salesPipeline.filter((i) => i.id !== item.id);
+      setSalesPipeline(updated);
+      await storage.saveSalesPipeline(updated);
+    } else if (source === 'active') {
+      const updated = activeClients.filter((i) => i.id !== item.id);
+      setActiveClients(updated);
+      await storage.saveActiveClients(updated);
     }
   };
 
   const handleClosedWon = async (item: PipelineItem) => {
-    const duplicate = confirm(
+    const confirmMove = confirm(
       `Move "${item.prospect}" to Active Clients?\n\n` +
-      `Would you like to duplicate this deal to Active Clients?`
+        `This will remove the deal from the Sales pipeline and create an Active Client entry.`
     );
 
-    if (!duplicate) return;
+    if (!confirmMove) return;
 
-    // Prompt for payment type
     const paymentType = prompt(
       'Payment Type:\n1. MRR (Monthly Recurring Revenue)\n2. Project (One-time payment)\n3. Hybrid\n\nEnter: MRR, Project, or Hybrid'
     )?.trim() as 'MRR' | 'Project' | 'Hybrid' | undefined;
@@ -369,27 +618,63 @@ export default function PipelineManager() {
       mrrAmount = mrrInput ? parseFloat(mrrInput) : undefined;
     }
 
+    const now = new Date().toISOString();
+    const historyBase = item.stageHistory ? [...item.stageHistory] : [];
+    const withClosedWon = appendStageHistory(
+      historyBase,
+      createStageEntry('Sales: Closed Won', 'Agreement or invoice confirmed', item.nextStep, item.nextStepDate, now)
+    );
+    const activeHistory = appendStageHistory(
+      withClosedWon,
+      createStageEntry('Active: Onboarding', 'Client moved to Active pipeline')
+    );
+
+    const { salesStage: _salesStage, ...rest } = item;
+    const clonedActionItems = rest.actionItems ? rest.actionItems.map((ai) => ({ ...ai })) : undefined;
+    const clonedInteractions = rest.interactions
+      ? rest.interactions.map((interaction) => ({
+          ...interaction,
+          actionItems: interaction.actionItems ? interaction.actionItems.map((ai) => ({ ...ai })) : undefined,
+        }))
+      : undefined;
     const activeItem: PipelineItem = {
-      ...item,
+      ...rest,
       paymentType,
       mrrAmount,
-      startDate: new Date().toISOString(),
-      salesStage: undefined, // Remove stage from active clients
+      startDate: now,
+      salesStage: undefined,
+      actionItems: clonedActionItems,
+      interactions: clonedInteractions,
+      stageHistory: activeHistory,
     };
 
     const updatedActive = [...activeClients, activeItem];
     setActiveClients(updatedActive);
     await storage.saveActiveClients(updatedActive);
 
-    // Remove from sales pipeline
-    const updated = salesPipeline.filter((i) => i.id !== item.id);
-    setSalesPipeline(updated);
-    await storage.saveSalesPipeline(updated);
+    const updatedSales = salesPipeline.filter((i) => i.id !== item.id);
+    setSalesPipeline(updatedSales);
+    await storage.saveSalesPipeline(updatedSales);
+
+    alert('Deal moved to Active Clients.');
   };
 
   const moveToFormer = async (item: PipelineItem) => {
     if (confirm(`Move "${item.prospect}" to Former Clients?`)) {
-      const formerItem = { ...item, endDate: new Date().toISOString() };
+      const now = new Date().toISOString();
+      const historyBase = item.stageHistory ? [...item.stageHistory] : [];
+      const stageHistory = appendStageHistory(
+        historyBase,
+        createStageEntry('Former Client', 'Moved from Active to Former Clients', item.nextStep, item.nextStepDate, now)
+      );
+      const clonedActionItems = item.actionItems ? item.actionItems.map((ai) => ({ ...ai })) : undefined;
+      const clonedInteractions = item.interactions
+        ? item.interactions.map((interaction) => ({
+            ...interaction,
+            actionItems: interaction.actionItems ? interaction.actionItems.map((ai) => ({ ...ai })) : undefined,
+          }))
+        : undefined;
+      const formerItem = { ...item, endDate: now, stageHistory, actionItems: clonedActionItems, interactions: clonedInteractions };
       const updatedFormer = [...formerClients, formerItem];
       setFormerClients(updatedFormer);
       await storage.saveFormerClients(updatedFormer);
@@ -609,43 +894,31 @@ export default function PipelineManager() {
   const getCurrentPipeline = () => {
     switch (currentView) {
       case 'leads':
-        return leadsPipeline.map((lead) => ({
-          id: lead.id,
-          prospect: lead.prospect,
-          proposedProject: lead.company || 'Lead',
-          amount: lead.projectedOpportunity,
-          salesStage: lead.status,
-          nextStep: lead.notes.general || '',
-          notes: `Source: ${lead.source}`,
-          createdAt: lead.createdAt,
-        })) as PipelineItem[];
+        return leadsPipeline.map((lead) => {
+          const latestHistory =
+            lead.stageHistory && lead.stageHistory.length > 0
+              ? lead.stageHistory[lead.stageHistory.length - 1]
+              : undefined;
+          return {
+            id: lead.id,
+            prospect: lead.prospect,
+            proposedProject: lead.company || 'Lead',
+            amount: lead.projectedOpportunity,
+            salesStage: lead.status,
+            nextStep: lead.notes.general || '',
+            nextStepDate: latestHistory?.nextStepDate,
+            notes: `Source: ${lead.source}`,
+            createdAt: lead.createdAt,
+          } as PipelineItem;
+        });
       case 'sales':
-        // Sort by nextStepDate (nearest to today first, nulls last)
-        return [...salesPipeline].sort((a, b) => {
-          if (!a.nextStepDate && !b.nextStepDate) return 0;
-          if (!a.nextStepDate) return 1;
-          if (!b.nextStepDate) return -1;
-          
-          const dateA = new Date(a.nextStepDate).getTime();
-          const dateB = new Date(b.nextStepDate).getTime();
-          const today = new Date().getTime();
-          
-          const diffA = Math.abs(dateA - today);
-          const diffB = Math.abs(dateB - today);
-          
-          return diffA - diffB;
-        });
+        return sortByNextStepDate(salesPipeline);
       case 'active':
-        // Group by customer (prospect field) - sort alphabetically by client name, then by project
-        return [...activeClients].sort((a, b) => {
-          const clientCompare = a.prospect.localeCompare(b.prospect);
-          if (clientCompare !== 0) return clientCompare;
-          return a.proposedProject.localeCompare(b.proposedProject);
-        });
+        return sortByNextStepDate(activeClients);
       case 'lost':
-        return lostDeals;
+        return sortByFieldDateDesc(lostDeals, 'lostDate');
       case 'former':
-        return formerClients;
+        return sortByFieldDateDesc(formerClients, 'endDate');
       default:
         return [];
     }
@@ -1387,6 +1660,13 @@ export default function PipelineManager() {
                           >
                             +
                           </button>
+                          <button
+                            onClick={() => promoteLeadToSales(lead)}
+                            className="text-purple-600 hover:text-purple-800"
+                            title="Promote to Sales Pipeline"
+                          >
+                            ⇨
+                          </button>
                         <button
                           onClick={() => deleteLead(lead.id)}
                           className="text-red-600 hover:text-red-800"
@@ -1696,13 +1976,22 @@ export default function PipelineManager() {
                                 </>
                               )}
                               {currentView === 'active' && (
-                                <button
-                                  onClick={() => moveToFormer(item)}
-                                  className="text-gray-600 hover:text-gray-800 text-xs"
-                                  title="Move to Former Clients"
-                                >
-                                  📦
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => handleActiveLoss(item)}
+                                    className="text-red-600 hover:text-red-800 text-xs"
+                                    title="Mark as Lost Deal"
+                                  >
+                                    ✖
+                                  </button>
+                                  <button
+                                    onClick={() => moveToFormer(item)}
+                                    className="text-gray-600 hover:text-gray-800 text-xs"
+                                    title="Move to Former Clients"
+                                  >
+                                    📦
+                                  </button>
+                                </>
                               )}
                             <button
                               onClick={() => deleteItem(item.id)}
