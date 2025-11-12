@@ -629,7 +629,8 @@ export default function PipelineManager() {
       createStageEntry('Active: Onboarding', 'Client moved to Active pipeline')
     );
 
-    const { salesStage: _salesStage, ...rest } = item;
+    const rest = { ...item };
+    delete rest.salesStage;
     const clonedActionItems = rest.actionItems ? rest.actionItems.map((ai) => ({ ...ai })) : undefined;
     const clonedInteractions = rest.interactions
       ? rest.interactions.map((interaction) => ({

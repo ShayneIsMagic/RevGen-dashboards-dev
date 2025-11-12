@@ -6,7 +6,7 @@ import { useGovContracts } from '@/hooks/useLocalForage';
 import { storage } from '@/lib/storage';
 import { parseBidMatchJSON, isBidMatchFormat } from '@/lib/bidMatchParser';
 import type { GovContractItem, GovContractType } from '@/types';
-import { Download, Plus, Edit2, Save, X, AlertCircle, Upload, FileDown, Trash } from './icons';
+import { Download, Plus, AlertCircle, Upload, FileDown, Trash } from './icons';
 
 const opportunityTypes: Array<'Federal' | 'State' | 'Local' | 'Emergency'> = ['Federal', 'State', 'Local', 'Emergency'];
 const priorityLevels: Array<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'> = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
@@ -16,7 +16,6 @@ const statusOptions: Array<'new' | 'registered' | 'reviewing' | 'preparing' | 's
 export default function GovContractManager() {
   const { contracts, setContracts, loading } = useGovContracts();
   const [currentView, setCurrentView] = useState<GovContractType>('all');
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
   const [newContract, setNewContract] = useState<Partial<GovContractItem>>({
@@ -119,7 +118,11 @@ export default function GovContractManager() {
   };
 
   // Update Contract
-  const updateContract = async (contractId: number, field: keyof GovContractItem, value: any) => {
+  const updateContract = async <K extends keyof GovContractItem>(
+    contractId: number,
+    field: K,
+    value: GovContractItem[K]
+  ) => {
     const updated = contracts.map((contract) =>
       contract.id === contractId ? { ...contract, [field]: value, updatedAt: new Date().toISOString() } : contract
     );
@@ -134,20 +137,6 @@ export default function GovContractManager() {
       setContracts(updated);
       await storage.saveGovContracts(updated);
     }
-  };
-
-  // Toggle Action Item
-  const toggleActionItem = async (contractId: number, actionItemId: number) => {
-    const contract = contracts.find(c => c.id === contractId);
-    if (!contract || !contract.actionItems) return;
-
-    const updatedActionItems = contract.actionItems.map(item =>
-      item.id === actionItemId
-        ? { ...item, completed: !item.completed, completedDate: !item.completed ? new Date().toISOString() : undefined }
-        : item
-    );
-
-    await updateContract(contractId, 'actionItems', updatedActionItems);
   };
 
   // Add Action Item
@@ -545,7 +534,12 @@ export default function GovContractManager() {
                 />
                 <select
                   value={newContract.opportunityType}
-                  onChange={(e) => setNewContract({ ...newContract, opportunityType: e.target.value as any })}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      opportunityType: e.target.value as GovContractItem['opportunityType'],
+                    })
+                  }
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white"
                 >
                   {opportunityTypes.map((type) => (
@@ -554,7 +548,12 @@ export default function GovContractManager() {
                 </select>
                 <select
                   value={newContract.priority}
-                  onChange={(e) => setNewContract({ ...newContract, priority: e.target.value as any })}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      priority: e.target.value as GovContractItem['priority'],
+                    })
+                  }
                   className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white"
                 >
                   {priorityLevels.map((level) => (

@@ -26,7 +26,7 @@ interface BidMatchOpportunity {
   requirements?: {
     sam_registration?: boolean;
     naics_code?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   special_notes?: string;
   contact?: {
@@ -39,9 +39,17 @@ interface BidMatchOpportunity {
 }
 
 interface BidMatchData {
-  metadata?: any;
+  metadata?: unknown;
   opportunities: BidMatchOpportunity[];
-  summary?: any;
+  summary?: unknown;
+}
+
+type RawBidMatchOpportunity = Record<string, unknown>;
+
+interface RawBidMatchData {
+  metadata?: unknown;
+  opportunities: RawBidMatchOpportunity[];
+  summary?: unknown;
 }
 
 /**
@@ -192,7 +200,7 @@ function parseDueDate(dueDate?: string): string | undefined {
     if (!isNaN(parsed.getTime())) {
       return parsed.toISOString().split('T')[0];
     }
-  } catch (e) {
+  } catch {
     // Invalid date
   }
   
@@ -280,79 +288,98 @@ function convertBidMatchOpportunity(bidMatch: BidMatchOpportunity, index: number
  * - Format 2: "Opp #", "Match", "Value", "Due Date" (title case with spaces)
  * - Format 3: opp_number, match_score (number), estimated_value
  */
-function normalizeOpportunity(opp: any): BidMatchOpportunity {
-  // Handle match field - could be string or number
-  let matchField = '';
-  if (opp.match) {
-    matchField = opp.match;
-  } else if (opp['Match']) {
-    matchField = opp['Match'];
-  } else if (opp.match_score !== undefined) {
-    // Convert match_score number to match string format
-    matchField = `${opp.match_score}%`;
-    if (opp.matched_capabilities && Array.isArray(opp.matched_capabilities) && opp.matched_capabilities.length > 0) {
-      matchField += ` - ${opp.matched_capabilities[0]}`;
+function normalizeOpportunity(rawOpp: RawBidMatchOpportunity): BidMatchOpportunity {
+  if (typeof rawOpp.opp_number === 'string') {
+    return rawOpp as unknown as BidMatchOpportunity;
+  }
+
+  const valueFromKeys = (keys: string[]) => {
+    for (const key of keys) {
+      const candidate = rawOpp[key];
+      if (typeof candidate === 'string') {
+        return candidate;
+      }
+    }
+    return undefined;
+  };
+
+  const matchScore = typeof rawOpp.match_score === 'number' ? rawOpp.match_score : undefined;
+  const matchedCapabilities = Array.isArray(rawOpp.matched_capabilities)
+    ? (rawOpp.matched_capabilities as unknown[]).filter((item): item is string => typeof item === 'string')
+    : [];
+
+  let matchField: string | undefined = valueFromKeys(['Match', 'match']);
+  if (!matchField && typeof matchScore === 'number') {
+    matchField = `${matchScore}%`;
+    if (matchedCapabilities.length > 0) {
+      matchField += ` - ${matchedCapabilities[0]}`;
     }
   }
-  
-  // Handle value field
-  const valueField = opp.value || opp['Value'] || opp.estimated_value || opp.actual_value || '';
-  
-  // Handle due date field
-  const dueDateField = opp.due_date || opp['Due Date'];
-  
-  // Handle actions field
-  let actionsField: string[] = [];
-  if (typeof opp.actions === 'string') {
-    actionsField = [opp.actions];
-  } else if (typeof opp['Actions'] === 'string') {
-    actionsField = [opp['Actions']];
-  } else if (Array.isArray(opp.actions)) {
-    actionsField = opp.actions;
-  }
-  
-  // Build capability alignment if we have matched_capabilities
-  let capabilityAlignment = opp.capability_alignment;
-  if (!capabilityAlignment && opp.matched_capabilities && Array.isArray(opp.matched_capabilities)) {
-    capabilityAlignment = {
-      primary: opp.matched_capabilities[0] || '',
-      secondary: opp.matched_capabilities.slice(1),
-      confidence: `${opp.match_score || 0}%`
-    };
-  }
-  
+
+  const valueField =
+    valueFromKeys(['value', 'Value', 'estimated_value', 'actual_value']) ??
+    '';
+  const dueDateField = valueFromKeys(['due_date', 'Due Date']);
+
+  const actionsField: string[] = (() => {
+    if (typeof rawOpp.actions === 'string') {
+      return [rawOpp.actions];
+    }
+    if (typeof rawOpp.Actions === 'string') {
+      return [rawOpp.Actions];
+    }
+    if (Array.isArray(rawOpp.actions)) {
+      return rawOpp.actions.filter((item): item is string => typeof item === 'string');
+    }
+    return [];
+  })();
+
+  const capabilityAlignment =
+    (rawOpp.capability_alignment as BidMatchOpportunity['capability_alignment']) ??
+    (matchedCapabilities.length > 0
+      ? {
+          primary: matchedCapabilities[0],
+          secondary: matchedCapabilities.slice(1),
+          confidence: `${matchScore ?? 0}%`,
+        }
+      : undefined);
+
   return {
-    opp_number: opp.opp_number || opp['Opp #'] || '',
-    title: opp.title || opp['Title'] || '',
-    agency: opp.agency || opp['Agency'] || '',
-    type: opp.type || opp['Type'] || '',
-    priority: opp.priority || opp['Priority'] || '',
-    match: matchField,
+    opp_number:
+      valueFromKeys(['Opp #']) ??
+      '',
+    title: valueFromKeys(['Title']) ?? '',
+    agency: valueFromKeys(['Agency']) ?? '',
+    type: valueFromKeys(['Type']) ?? '',
+    priority: valueFromKeys(['Priority']) ?? 'MEDIUM',
+    match: matchField ?? '0%',
     value: valueField,
     due_date: dueDateField,
-    status: opp.status || opp['Status'] || '',
+    status: valueFromKeys(['Status']) ?? 'new',
     actions: actionsField,
-    portal_url: opp.portal_url || opp['Portal URL'],
-    solicitation_id: opp.solicitation_id || opp['Solicitation #'],
-    direct_link: opp.direct_link || opp['Direct Link'],
+    portal_url: valueFromKeys(['portal_url', 'Portal URL']),
+    solicitation_id: valueFromKeys(['solicitation_id', 'Solicitation #']),
+    direct_link: valueFromKeys(['direct_link', 'Direct Link']),
     capability_alignment: capabilityAlignment,
-    geographic: opp.geographic,
-    requirements: opp.requirements,
-    special_notes: opp.special_notes || opp['Special Notes'] || opp.notes,
-    contact: opp.contact,
+    geographic: rawOpp.geographic as BidMatchOpportunity['geographic'],
+    requirements: rawOpp.requirements as BidMatchOpportunity['requirements'],
+    special_notes:
+      valueFromKeys(['special_notes', 'Special Notes', 'notes']),
+    contact: rawOpp.contact as BidMatchOpportunity['contact'],
   };
 }
 
 /**
  * Main parser function - converts BidMatch JSON to GovContractItem array
  */
-export function parseBidMatchJSON(data: BidMatchData): GovContractItem[] {
+export function parseBidMatchJSON(data: BidMatchData | RawBidMatchData): GovContractItem[] {
   if (!data.opportunities || !Array.isArray(data.opportunities)) {
     throw new Error('Invalid BidMatch JSON: missing opportunities array');
   }
   
-  // Normalize opportunities to handle both old and new formats
-  const normalizedOpportunities = data.opportunities.map(opp => normalizeOpportunity(opp));
+  const normalizedOpportunities = (data.opportunities as RawBidMatchOpportunity[]).map((opp) =>
+    normalizeOpportunity(opp)
+  );
   
   return normalizedOpportunities.map((opp, index) => convertBidMatchOpportunity(opp, index));
 }
@@ -361,18 +388,27 @@ export function parseBidMatchJSON(data: BidMatchData): GovContractItem[] {
  * Validate BidMatch JSON format
  * Supports both old format (opp_number) and new format ("Opp #")
  */
-export function isBidMatchFormat(data: any): boolean {
-  if (!data || typeof data !== 'object' || !Array.isArray(data.opportunities) || data.opportunities.length === 0) {
+export function isBidMatchFormat(data: unknown): data is RawBidMatchData {
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    !Array.isArray((data as RawBidMatchData).opportunities) ||
+    (data as RawBidMatchData).opportunities.length === 0
+  ) {
     return false;
   }
   
-  const firstOpp = data.opportunities[0];
+  const firstOpp = (data as RawBidMatchData).opportunities[0];
   
   // Check for old format (lowercase with underscores)
-  const isOldFormat = firstOpp.opp_number !== undefined && firstOpp.match !== undefined;
+  const isOldFormat =
+    typeof firstOpp.opp_number === 'string' &&
+    (typeof firstOpp.match === 'string' || typeof firstOpp.match_score === 'number');
   
   // Check for new format (title case with spaces)
-  const isNewFormat = firstOpp['Opp #'] !== undefined && firstOpp['Match'] !== undefined;
+  const isNewFormat =
+    typeof firstOpp['Opp #'] === 'string' &&
+    (typeof firstOpp['Match'] === 'string' || typeof firstOpp.match_score === 'number');
   
   return isOldFormat || isNewFormat;
 }

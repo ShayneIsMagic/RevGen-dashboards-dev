@@ -66,11 +66,11 @@ export const storage = {
   },
 
   // Financial Data
-  async getFinancialData(period: 'month' | 'quarter' | 'year', date: string): Promise<any | null> {
+  async getFinancialData(period: 'month' | 'quarter' | 'year', date: string): Promise<unknown | null> {
     const key = `financial_${period}_${date}`;
     return await localforage.getItem(key);
   },
-  async saveFinancialData(period: 'month' | 'quarter' | 'year', date: string, data: any): Promise<void> {
+  async saveFinancialData(period: 'month' | 'quarter' | 'year', date: string, data: unknown): Promise<void> {
     const key = `financial_${period}_${date}`;
     await localforage.setItem(key, data);
   },

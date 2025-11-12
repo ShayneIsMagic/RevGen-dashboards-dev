@@ -247,8 +247,6 @@ export function createGoalsFromFinancialData(
   unit: string;
 }> {
   const goals = [];
-  const today = new Date().toISOString().split('T')[0];
-
   // Calculate target values (example: 10% growth)
   const arTarget = data.accountsReceivable * 1.1;
   const mrrTarget = data.mrr * 1.1;
