@@ -1984,21 +1984,19 @@ export default function PipelineManager() {
                               </button>
                               {currentView === 'sales' && (
                                 <>
-                                  {item.salesStage === 'Overcome' && (
-                                    <button
-                                      onClick={() => handleClosedWon(item)}
-                                      className="text-green-600 hover:text-green-800 text-xs font-bold"
-                                      title="Move to Active Clients (Closed Won)"
-                                    >
-                                      ✓
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => handleClosedWon(item)}
+                                    className="text-green-600 hover:text-green-800 text-xs font-bold px-2 py-1 bg-green-50 rounded border border-green-200"
+                                    title="Mark as Closed Won - Can close from Proposal, Realign, or Overcome stage - Moves to Active Clients"
+                                  >
+                                    ✓ Closed Won
+                                  </button>
                                   <button
                                     onClick={() => moveToLost(item)}
-                                    className="text-red-600 hover:text-red-800 text-xs"
+                                    className="text-red-600 hover:text-red-800 text-xs px-2 py-1 bg-red-50 rounded border border-red-200"
                                     title="Move to Lost Deals"
                                   >
-                                    ✗
+                                    ✗ Lost
                                   </button>
                                 </>
                               )}
