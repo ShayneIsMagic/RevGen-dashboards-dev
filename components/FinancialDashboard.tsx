@@ -73,7 +73,7 @@ export default function FinancialDashboard() {
     try {
       const saved = await storage.getFinancialData(selectedPeriod, periodDate);
       if (saved) {
-        setFinancialData(saved);
+        setFinancialData(saved as FinancialData);
       }
     } catch {
       // Silent fail - no data saved yet

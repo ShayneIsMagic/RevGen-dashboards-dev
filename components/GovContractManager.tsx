@@ -761,7 +761,7 @@ export default function GovContractManager() {
                       <td className="px-4 py-3">
                         <select
                           value={contract.status}
-                          onChange={(e) => updateContract(contract.id, 'status', e.target.value)}
+                          onChange={(e) => updateContract(contract.id, 'status', e.target.value as GovContractItem['status'])}
                           className="px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white"
                         >
                           {statusOptions.map((status) => (
