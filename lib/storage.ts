@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import type { Goal, PipelineItem, LeadItem, GovContractItem } from '@/types';
+import type { Goal, PipelineItem, LeadItem, GovContractItem, SalesTargets, SalesMetrics, DeveloperMetrics, DashboardConfig } from '@/types';
 
 // Configure LocalForage
 localforage.config({
@@ -81,6 +81,34 @@ export const storage = {
   },
   async saveGovContracts(items: GovContractItem[]): Promise<void> {
     await localforage.setItem('govContracts', items);
+  },
+
+  // Sales Metrics & Targets
+  async getSalesTargets(): Promise<SalesTargets | null> {
+    return (await localforage.getItem('salesTargets')) as SalesTargets | null;
+  },
+  async saveSalesTargets(targets: SalesTargets): Promise<void> {
+    await localforage.setItem('salesTargets', targets);
+  },
+  async getSalesMetrics(): Promise<SalesMetrics | null> {
+    return (await localforage.getItem('salesMetrics')) as SalesMetrics | null;
+  },
+  async saveSalesMetrics(metrics: SalesMetrics): Promise<void> {
+    await localforage.setItem('salesMetrics', metrics);
+  },
+  async getDashboardConfig(): Promise<DashboardConfig | null> {
+    return (await localforage.getItem('dashboardConfig')) as DashboardConfig | null;
+  },
+  async saveDashboardConfig(config: DashboardConfig): Promise<void> {
+    await localforage.setItem('dashboardConfig', config);
+  },
+
+  // Developer Metrics
+  async getDeveloperMetrics(): Promise<DeveloperMetrics | null> {
+    return (await localforage.getItem('developerMetrics')) as DeveloperMetrics | null;
+  },
+  async saveDeveloperMetrics(metrics: DeveloperMetrics): Promise<void> {
+    await localforage.setItem('developerMetrics', metrics);
   },
 };
 

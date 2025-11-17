@@ -946,12 +946,26 @@ export default function PipelineManager() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Pipeline Manager</h1>
               <p className="text-gray-600">Track goals, leads, and client relationships</p>
             </div>
-            <Link
-              href="/financial"
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              <FileDown size={16} /> Financial Dashboard
-            </Link>
+            <div className="flex gap-2">
+              <Link
+                href="/insights"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                📊 Insights
+              </Link>
+              <Link
+                href="/contracts"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                🏛️ Gov Contracts
+              </Link>
+              <Link
+                href="/financial"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                <FileDown size={16} /> Financial Dashboard
+              </Link>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={exportToJSON}
