@@ -960,6 +960,18 @@ export default function PipelineManager() {
                 🏛️ Gov Contracts
               </Link>
               <Link
+                href="/developers"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                👥 Developers
+              </Link>
+              <Link
+                href="/insights"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                📊 Insights
+              </Link>
+              <Link
                 href="/financial"
                 className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
               >

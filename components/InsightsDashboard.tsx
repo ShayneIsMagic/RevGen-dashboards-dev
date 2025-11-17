@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { storage } from '@/lib/storage';
 import { defaultSalesTargets, calculateMetricStatus, calculateSalesMetrics } from '@/lib/salesMetrics';
-import type { SalesTargets, SalesMetrics, MetricStatus, LeadItem, PipelineItem } from '@/types';
+import { calculateDeveloperMetrics, connectDeveloperToSales } from '@/lib/developerMetrics';
+import type { SalesTargets, SalesMetrics, MetricStatus, LeadItem, PipelineItem, DeveloperMetrics } from '@/types';
 import Link from 'next/link';
 
 export default function InsightsDashboard() {
@@ -14,6 +15,8 @@ export default function InsightsDashboard() {
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [salesPipeline, setSalesPipeline] = useState<PipelineItem[]>([]);
   const [activeClients, setActiveClients] = useState<PipelineItem[]>([]);
+  const [developerMetrics, setDeveloperMetrics] = useState<DeveloperMetrics | null>(null);
+  const [salesConnection, setSalesConnection] = useState<ReturnType<typeof connectDeveloperToSales> | null>(null);
 
   useEffect(() => {
     loadData();
@@ -28,10 +31,11 @@ export default function InsightsDashboard() {
       }
 
       // Load pipeline data to calculate metrics
-      const [leadsData, salesData, activeData] = await Promise.all([
+      const [leadsData, salesData, activeData, devData] = await Promise.all([
         storage.getLeadsPipeline(),
         storage.getSalesPipeline(),
         storage.getActiveClients(),
+        storage.getDeveloperMetrics(),
       ]);
 
       setLeads(leadsData);
@@ -41,6 +45,14 @@ export default function InsightsDashboard() {
       // Calculate metrics
       const calculatedMetrics = calculateSalesMetrics(leadsData, salesData, activeData);
       setMetrics(calculatedMetrics);
+
+      // Calculate developer metrics
+      const calculatedDevMetrics = calculateDeveloperMetrics(activeData, devData || undefined);
+      setDeveloperMetrics(calculatedDevMetrics);
+
+      // Connect developer metrics to sales
+      const connection = connectDeveloperToSales(calculatedDevMetrics, activeData);
+      setSalesConnection(connection);
     } catch (error) {
       console.error('Error loading insights data:', error);
     } finally {
@@ -184,6 +196,12 @@ export default function InsightsDashboard() {
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
             >
               Financial
+            </Link>
+            <Link
+              href="/developers"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+            >
+              👥 Developers
             </Link>
           </div>
         </div>
@@ -334,7 +352,116 @@ export default function InsightsDashboard() {
             </div>
           </div>
         )}
+
+        {/* Developer to Sales Connection */}
+        {salesConnection && (
+          <div className="bg-white rounded-lg shadow p-6 mt-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Developer → Sales Connection</h2>
+            <p className="text-gray-600 mb-4">
+              How developer productivity and project delivery impact sales and revenue
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <ConnectionCard
+                title="Revenue from Billable Hours"
+                value={`$${(salesConnection.estimatedRevenue / 1000).toFixed(0)}k`}
+                subtitle={`${salesConnection.totalBillableHours.toFixed(0)} hours × $${salesConnection.revenuePerHour}/hr`}
+                impact="Direct revenue impact"
+                color="green"
+              />
+              <ConnectionCard
+                title="Referral Potential"
+                value={`${salesConnection.referralPotential.toFixed(0)}%`}
+                subtitle={`Satisfaction: ${salesConnection.averageSatisfaction.toFixed(1)}/5 | On-time: ${salesConnection.onTimeDeliveryRate.toFixed(0)}%`}
+                impact="High satisfaction + on-time delivery = referrals"
+                color="blue"
+              />
+              <ConnectionCard
+                title="Projects Completed"
+                value={salesConnection.projectsCompleted.toString()}
+                subtitle="Each project is a potential referral source"
+                impact="More projects = more referral opportunities"
+                color="purple"
+              />
+              <ConnectionCard
+                title="Delivery Efficiency"
+                value={`${salesConnection.deliveryEfficiency.toFixed(1)}%`}
+                subtitle="Estimated vs Actual hours"
+                impact="Efficient delivery improves profitability"
+                color="indigo"
+              />
+              <ConnectionCard
+                title="On-Time Delivery Rate"
+                value={`${salesConnection.onTimeDeliveryRate.toFixed(1)}%`}
+                subtitle="Projects delivered on schedule"
+                impact="On-time delivery increases client satisfaction"
+                color="teal"
+              />
+              <ConnectionCard
+                title="Quality Score"
+                value={`${(100 - salesConnection.averageKickbackRatio).toFixed(0)}%`}
+                subtitle={`${salesConnection.averageKickbackRatio.toFixed(1)}% kickback ratio`}
+                impact="High quality reduces rework and increases satisfaction"
+                color="orange"
+              />
+            </div>
+
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200">
+              <h3 className="font-semibold text-indigo-900 mb-2">💡 Key Insights</h3>
+              <ul className="space-y-2 text-sm text-indigo-800">
+                <li>
+                  • <strong>Billable Hours → Revenue:</strong> {salesConnection.totalBillableHours.toFixed(0)} billable hours 
+                  generate approximately ${(salesConnection.estimatedRevenue / 1000).toFixed(0)}k in revenue
+                </li>
+                <li>
+                  • <strong>Project Completion → Referrals:</strong> {salesConnection.projectsCompleted} completed projects 
+                  with {salesConnection.averageSatisfaction.toFixed(1)}/5 satisfaction create a {salesConnection.referralPotential.toFixed(0)}% referral potential
+                </li>
+                <li>
+                  • <strong>On-Time Delivery → Client Retention:</strong> {salesConnection.onTimeDeliveryRate.toFixed(0)}% on-time delivery 
+                  rate contributes to higher client satisfaction and retention
+                </li>
+                <li>
+                  • <strong>Quality → Efficiency:</strong> {salesConnection.averageKickbackRatio.toFixed(1)}% kickback ratio 
+                  means {(100 - salesConnection.averageKickbackRatio).toFixed(0)}% quality, reducing rework and improving profitability
+                </li>
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function ConnectionCard({
+  title,
+  value,
+  subtitle,
+  impact,
+  color,
+}: {
+  title: string;
+  value: string;
+  subtitle: string;
+  impact: string;
+  color: 'green' | 'blue' | 'purple' | 'indigo' | 'teal' | 'orange';
+}) {
+  const colorClasses = {
+    green: 'bg-green-50 border-green-200 text-green-900',
+    blue: 'bg-blue-50 border-blue-200 text-blue-900',
+    purple: 'bg-purple-50 border-purple-200 text-purple-900',
+    indigo: 'bg-indigo-50 border-indigo-200 text-indigo-900',
+    teal: 'bg-teal-50 border-teal-200 text-teal-900',
+    orange: 'bg-orange-50 border-orange-200 text-orange-900',
+  };
+
+  return (
+    <div className={`border rounded-lg p-4 ${colorClasses[color]}`}>
+      <h3 className="text-sm font-semibold mb-1">{title}</h3>
+      <p className="text-2xl font-bold mb-1">{value}</p>
+      <p className="text-xs opacity-80 mb-2">{subtitle}</p>
+      <p className="text-xs italic opacity-70">{impact}</p>
     </div>
   );
 }
@@ -361,7 +488,7 @@ function TargetInput({
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         />
       ) : (
-        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">{value}</div>
+        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 font-semibold">{value}</div>
       )}
     </div>
   );
@@ -378,7 +505,7 @@ function MetricCard({ label, status }: { label: string; status: MetricStatus }) 
         <span className="text-sm font-medium text-gray-700">{formatLabel(label)}</span>
         <span className="text-lg">{getStatusIcon(status.status)}</span>
       </div>
-      <div className="text-xs text-gray-600">
+      <div className="text-xs text-gray-900 font-semibold">
         {status.currentValue.toFixed(1)} / {status.targetValue.toFixed(1)} ({status.percentage.toFixed(1)}%)
       </div>
       {status.message && (
